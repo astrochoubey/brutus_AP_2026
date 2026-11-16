@@ -823,6 +823,15 @@ Open a pull request with a clear description of the change and the reasoning beh
 
 ---
 
+## Contributors
+
+- [Priyanshu Shrivastava](https://github.com/priyanshuuu777)
+- [Kushagra](https://github.com/nottkushagra)
+- [Nitya Pawar](https://github.com/nityapawar495-sys)
+- [Prachi Choubey](https://github.com/astrochoubey)
+
+---
+
 ## License
 
 This project is licensed under the terms of the MIT License. See [`LICENSE`](./LICENSE) for the full text.

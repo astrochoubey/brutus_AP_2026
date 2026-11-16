@@ -1,4 +1,28 @@
 /**
+ * Fast ID-based relationship classification comparing followers and following datasets.
+ *
+ * @param {Array<string|Object>} followers - List of followers (IDs or objects with id)
+ * @param {Array<string|Object>} following - List of following (IDs or objects with id)
+ * @returns {{ mutual: Array<string>, followingOnly: Array<string>, followerOnly: Array<string> }}
+ */
+export function compareRelationships(followers = [], following = []) {
+  const toIdSet = (arr) =>
+    new Set((Array.isArray(arr) ? arr : []).map((u) => (u && typeof u === 'object' ? u.id : u)).filter(Boolean));
+  const followerSet = toIdSet(followers);
+  const followingSet = toIdSet(following);
+  const mutual = [];
+  const followingOnly = [];
+  const followerOnly = [];
+  for (const id of followingSet) {
+    (followerSet.has(id) ? mutual : followingOnly).push(id);
+  }
+  for (const id of followerSet) {
+    if (!followingSet.has(id)) followerOnly.push(id);
+  }
+  return { mutual, followingOnly, followerOnly };
+}
+
+/**
  * Deterministic relationship classification using set operations:
  * - Mutuals            = Following ∩ Followers
  * - Not Following Back = Following − Followers

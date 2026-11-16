@@ -1,4 +1,24 @@
 /**
+ * Validates scan payload structure and non-negative count constraints.
+ *
+ * @param {Object} scan - Scan payload to validate
+ * @returns {{ isValid: boolean, reason: string | null }}
+ */
+export function validateScan(scan) {
+  if (!scan || typeof scan !== 'object') {
+    return { isValid: false, reason: 'Scan data must be a non-null object' };
+  }
+  const { reportedCount, collectedCount } = scan;
+  if (!Number.isFinite(reportedCount) || reportedCount < 0 || !Number.isFinite(collectedCount) || collectedCount < 0) {
+    return { isValid: false, reason: 'Counts must be non-negative finite numbers' };
+  }
+  if (collectedCount > reportedCount) {
+    return { isValid: false, reason: 'collectedCount cannot exceed reportedCount' };
+  }
+  return { isValid: true, reason: null };
+}
+
+/**
  * Validates the completeness and integrity of a scan extraction run.
  *
  * @param {number} reportedCount - Total count displayed on user profile banner
