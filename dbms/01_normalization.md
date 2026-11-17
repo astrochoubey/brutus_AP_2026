@@ -9,6 +9,7 @@ This document formalizes the relational database architecture for **Brutus** (an
 Brutus captures, audits, and analyzes personal Instagram social network graphs over time. Unlike ephemeral follower-checker scripts, Brutus treats social graphs as time-series datasets with data quality tracking, snapshot differencing, and graph analytics.
 
 ### Key Domain Entities
+
 1. **Observers (`Observer`):** The local user/account running the observation tool.
 2. **Scans (`Scan`):** Execution events of the DOM crawler, recording data extraction integrity metrics (reported count, collected count, duplicates, missing items, confidence rating).
 3. **Snapshots (`Snapshot`):** Validated point-in-time frozen states of the observer's network graph.
@@ -68,21 +69,22 @@ UNF_Network_Observation(
 
 ### 2.2 Sample UNF Data Record
 
-| Attribute | Record Value |
-|---|---|
-| `observer_id` | `obs_101` |
-| `observer_username` | `alex_dev` |
-| `observer_email` | `alex@example.com` |
-| `scan_id` | `scn_2026_001` |
-| `scan_timestamp` | `2026-11-01 10:00:00` |
-| `scan_status` | `COMPLETE: Scan matched DOM counter with 100% integrity` |
-| `reported_count` | `3` |
-| `collected_count` | `3` |
-| `snapshot_id` | `snp_2026_11_01` |
+| Attribute                         | Record Value                                                                                                                                                                                                                                                                                                     |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `observer_id`                     | `obs_101`                                                                                                                                                                                                                                                                                                        |
+| `observer_username`               | `alex_dev`                                                                                                                                                                                                                                                                                                       |
+| `observer_email`                  | `alex@example.com`                                                                                                                                                                                                                                                                                               |
+| `scan_id`                         | `scn_2026_001`                                                                                                                                                                                                                                                                                                   |
+| `scan_timestamp`                  | `2026-11-01 10:00:00`                                                                                                                                                                                                                                                                                            |
+| `scan_status`                     | `COMPLETE: Scan matched DOM counter with 100% integrity`                                                                                                                                                                                                                                                         |
+| `reported_count`                  | `3`                                                                                                                                                                                                                                                                                                              |
+| `collected_count`                 | `3`                                                                                                                                                                                                                                                                                                              |
+| `snapshot_id`                     | `snp_2026_11_01`                                                                                                                                                                                                                                                                                                 |
 | **`target_users` (Nested Array)** | `[ { uid: 881, user: "alice", name: "Alice M", verified: true, rel: "MUTUAL", mutual: true }, { uid: 882, user: "bob_coder", name: "Bob C", verified: false, rel: "FOLLOWING_ONLY", mutual: false }, { uid: 883, user: "charlie_art", name: "Charlie", verified: false, rel: "FOLLOWER_ONLY", mutual: false } ]` |
-| **`deltas` (Nested Array)** | `[ { chg_id: 1, user: 882, type: "LOST_MUTUAL", at: "2026-11-01 10:00:00" } ]` |
+| **`deltas` (Nested Array)**       | `[ { chg_id: 1, user: 882, type: "LOST_MUTUAL", at: "2026-11-01 10:00:00" } ]`                                                                                                                                                                                                                                   |
 
 ### 2.3 Anomalies in UNF
+
 - **Repeating Groups:** An arbitrary number of target users and deltas are nested in arrays or comma-delimited strings within a single observation record.
 - **Insertion Anomaly:** A new Instagram user profile cannot be stored without recording an active scan or snapshot.
 - **Update Anomaly:** If `alice` changes her display name to "Alice Miller", every past scan record containing her inside nested arrays must be searched and modified.
@@ -93,12 +95,15 @@ UNF_Network_Observation(
 ## 3. First Normal Form (1NF)
 
 ### 3.1 Definition & Requirements
+
 A relation is in **First Normal Form (1NF)** if and only if:
+
 1. Every attribute contains only **atomic** (indivisible) values.
 2. There are no **repeating groups** or multi-valued attributes (arrays/nested tables are flattened).
 3. Each record is uniquely identified by a defined **Primary Key**.
 
 ### 3.2 Transformation to 1NF
+
 To eliminate nested arrays, we flatten the relation. Each row represents a single observed target user in a specific scan/snapshot. The delta events are separated or represented with atomic columns.
 
 ```
@@ -136,24 +141,26 @@ Observation_1NF(
 **Composite Primary Key:**
 $$\text{PK} = \{\underline{\text{snapshot\_id}}, \underline{\text{target\_user\_id}}\}$$
 
-*(Assuming one snapshot per scan run, or alternately $\{\text{scan\_id}, \text{target\_user\_id}\}$).*
+_(Assuming one snapshot per scan run, or alternately $\{\text{scan\_id}, \text{target\_user\_id}\}$)._
 
 ### 3.3 1NF Table Instance
 
-| snapshot_id | target_user_id | observer_id | observer_username | scan_id | reported_count | target_username | target_full_name | is_verified | rel_type_code | rel_type_name | is_mutual |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| `snp_01` | `881` | `obs_101` | `alex_dev` | `scn_01` | 3 | `alice` | Alice M | TRUE | `MUT` | Mutual | TRUE |
-| `snp_01` | `882` | `obs_101` | `alex_dev` | `scn_01` | 3 | `bob_coder` | Bob C | FALSE | `FNG` | Following Only | FALSE |
-| `snp_01` | `883` | `obs_101` | `alex_dev` | `scn_01` | 3 | `charlie_art` | Charlie | FALSE | `FLR` | Follower Only | FALSE |
-| `snp_02` | `881` | `obs_101` | `alex_dev` | `scn_02` | 3 | `alice` | Alice M | TRUE | `MUT` | Mutual | TRUE |
+| snapshot_id | target_user_id | observer_id | observer_username | scan_id  | reported_count | target_username | target_full_name | is_verified | rel_type_code | rel_type_name  | is_mutual |
+| ----------- | -------------- | ----------- | ----------------- | -------- | -------------- | --------------- | ---------------- | ----------- | ------------- | -------------- | --------- |
+| `snp_01`    | `881`          | `obs_101`   | `alex_dev`        | `scn_01` | 3              | `alice`         | Alice M          | TRUE        | `MUT`         | Mutual         | TRUE      |
+| `snp_01`    | `882`          | `obs_101`   | `alex_dev`        | `scn_01` | 3              | `bob_coder`     | Bob C            | FALSE       | `FNG`         | Following Only | FALSE     |
+| `snp_01`    | `883`          | `obs_101`   | `alex_dev`        | `scn_01` | 3              | `charlie_art`   | Charlie          | FALSE       | `FLR`         | Follower Only  | FALSE     |
+| `snp_02`    | `881`          | `obs_101`   | `alex_dev`        | `scn_02` | 3              | `alice`         | Alice M          | TRUE        | `MUT`         | Mutual         | TRUE      |
 
 ### 3.4 Functional Dependencies in 1NF
+
 - $\text{FD}_1$: $\{\text{snapshot\_id}, \text{target\_user\_id}\} \to \{\text{relationship\_type\_code}, \text{relationship\_type\_name}, \text{is\_mutual}, \text{follows\_observer}, \text{followed\_by\_observer}, \text{observed\_at}\}$
 - $\text{FD}_2$: $\text{snapshot\_id} \to \{\text{observer\_id}, \text{observer\_username}, \text{observer\_email}, \text{scan\_id}, \text{scan\_timestamp}, \text{scan\_type}, \text{scan\_status\_code}, \text{scan\_status\_description}, \text{reported\_count}, \text{collected\_count}, \text{confidence\_score}, \text{snapshot\_timestamp}, \text{reciprocity\_ratio}, \text{network\_density}\}$
 - $\text{FD}_3$: $\text{target\_user\_id} \to \{\text{target\_username}, \text{target\_full\_name}, \text{target\_avatar\_url}, \text{is\_verified}, \text{is\_private}\}$
 
 ### 3.5 Remaining Vulnerabilities in 1NF
-- **Partial Functional Dependencies:** $\text{FD}_2$ and $\text{FD}_3$ depend on only *part* of the composite primary key ($\text{snapshot\_id}$ alone or $\text{target\_user\_id}$ alone).
+
+- **Partial Functional Dependencies:** $\text{FD}_2$ and $\text{FD}_3$ depend on only _part_ of the composite primary key ($\text{snapshot\_id}$ alone or $\text{target\_user\_id}$ alone).
 - **Data Redundancy:** For an account with 2,000 followers, the observer's information, scan metrics, and snapshot totals are duplicated 2,000 times in the table.
 - **Update Anomaly:** Updating `alex_dev`'s email requires modifying every row in every snapshot.
 - **Insertion Anomaly:** We cannot record a discovered user profile without attaching them to an existing snapshot.
@@ -163,14 +170,18 @@ $$\text{PK} = \{\underline{\text{snapshot\_id}}, \underline{\text{target\_user\_
 ## 4. Second Normal Form (2NF)
 
 ### 4.1 Definition & Requirements
+
 A relation is in **Second Normal Form (2NF)** if and only if:
+
 1. It is in **1NF**.
 2. There are **no partial dependencies**: every non-prime attribute is **fully functionally dependent** on the entire primary key.
 
 If a relation has a single-attribute primary key, it is automatically in 2NF once it satisfies 1NF. For relations with composite primary keys, any attribute that depends on only a subset of the primary key must be factored out into a separate relation.
 
 ### 4.2 Eliminating Partial Dependencies
+
 From our 1NF dependencies:
+
 - Attributes depending purely on $\text{target\_user\_id}$ ($\text{FD}_3$) are moved to a `Users` relation.
 - Attributes depending purely on $\text{snapshot\_id}$ ($\text{FD}_2$) are moved to a `Snapshots` relation.
 - Attributes depending on the entire composite key $\{\text{snapshot\_id}, \text{target\_user\_id}\}$ remain in `Snapshot_Relationships`.
@@ -178,7 +189,9 @@ From our 1NF dependencies:
 ### 4.3 2NF Decomposed Relations
 
 #### 1. `Users_2NF`
+
 Stores profile information keyed solely by `target_user_id`.
+
 - **Primary Key:** `user_id`
 - **Schema:**
   ```sql
@@ -195,7 +208,9 @@ Stores profile information keyed solely by `target_user_id`.
   $$\text{user\_id} \to \{\text{username}, \text{full\_name}, \text{avatar\_url}, \text{is\_verified}, \text{is\_private}\}$$
 
 #### 2. `Snapshots_2NF`
+
 Stores scan and snapshot execution details keyed solely by `snapshot_id`.
+
 - **Primary Key:** `snapshot_id`
 - **Schema:**
   ```sql
@@ -221,7 +236,9 @@ Stores scan and snapshot execution details keyed solely by `snapshot_id`.
   $$\text{snapshot\_id} \to \{\text{snapshot\_timestamp}, \text{observer\_id}, \dots, \text{network\_density}\}$$
 
 #### 3. `Snapshot_Relationships_2NF`
+
 Associative entity preserving the social graph edges at that specific snapshot.
+
 - **Primary Key:** `(snapshot_id, target_user_id)`
 - **Foreign Keys:**
   - `snapshot_id` $\to$ `Snapshots_2NF(snapshot_id)`
@@ -243,7 +260,9 @@ Associative entity preserving the social graph edges at that specific snapshot.
   $$\{\text{snapshot\_id}, \text{target\_user\_id}\} \to \{\text{relationship\_type\_code}, \text{relationship\_type\_name}, \text{is\_mutual}, \text{follows\_observer}, \text{followed\_by\_observer}, \text{observed\_at}\}$$
 
 ### 4.4 Remaining Vulnerabilities in 2NF
+
 While partial dependencies are eliminated, **transitive dependencies** remain:
+
 1. In `Snapshots_2NF`:
    - $\text{snapshot\_id} \to \text{observer\_id}$ and $\text{observer\_id} \to \{\text{observer\_username}, \text{observer\_email}\}$
    - $\text{snapshot\_id} \to \text{scan\_id}$ and $\text{scan\_id} \to \{\text{scan\_timestamp}, \text{scan\_type}, \text{scan\_status\_code}, \dots\}$
@@ -257,39 +276,44 @@ While partial dependencies are eliminated, **transitive dependencies** remain:
 ## 5. Third Normal Form (3NF)
 
 ### 5.1 Definition & Requirements
+
 A relation is in **Third Normal Form (3NF)** if and only if:
+
 1. It is in **2NF**.
 2. There are **no transitive dependencies** for non-prime attributes.
-   *Formally:* For every non-trivial functional dependency $X \to Y$, either:
+   _Formally:_ For every non-trivial functional dependency $X \to Y$, either:
    - $X$ is a **Superkey**, OR
    - $Y$ is a **Prime Attribute** (part of a candidate key).
 
-In colloquial terms: *"Every non-key attribute must provide a fact about the key, the whole key, and nothing but the key (so help me Codd)."*
+In colloquial terms: _"Every non-key attribute must provide a fact about the key, the whole key, and nothing but the key (so help me Codd)."_
 
 ### 5.2 Identifying & Eliminating Transitive Dependencies
 
 #### A. In `Snapshots_2NF`:
+
 - **Transitive Dependency 1 (Observer):**
   $$\text{snapshot\_id} \to \text{observer\_id} \to \{\text{observer\_username}, \text{observer\_email}\}$$
-  *Resolution:* Create separate `Observers` relation.
+  _Resolution:_ Create separate `Observers` relation.
 - **Transitive Dependency 2 (Scan Telemetry):**
   $$\text{snapshot\_id} \to \text{scan\_id} \to \{\text{scan\_timestamp}, \text{scan\_type}, \text{scan\_status\_code}, \text{reported\_count}, \text{collected\_count}, \text{confidence\_score}\}$$
-  *Resolution:* Separate `Scans` from `Snapshots`. A scan is the operational extraction event; a snapshot is the accepted graph state.
+  _Resolution:_ Separate `Scans` from `Snapshots`. A scan is the operational extraction event; a snapshot is the accepted graph state.
 - **Transitive Dependency 3 (Scan Status):**
   $$\text{scan\_id} \to \text{scan\_status\_code} \to \text{scan\_status\_description}$$
-  *Resolution:* Create lookup table `Scan_Statuses`.
+  _Resolution:_ Create lookup table `Scan_Statuses`.
 - **Transitive Dependency 4 (Derived Analytics):**
   $$\text{snapshot\_id} \to \{\text{reciprocity\_ratio}, \text{network\_density}\}$$
-  *Resolution:* Separate into a dedicated `Snapshot_Metrics` relation.
+  _Resolution:_ Separate into a dedicated `Snapshot_Metrics` relation.
 
 #### B. In `Snapshot_Relationships_2NF`:
+
 - **Transitive Dependency (Relationship Classification):**
   $$\{\text{snapshot\_id}, \text{target\_user\_id}\} \to \text{relationship\_type\_id} \to \{\text{type\_code}, \text{type\_label}, \text{is\_mutual}, \text{follows\_observer}, \text{followed\_by\_observer}\}$$
-  *Resolution:* Create a canonical lookup table `Relationship_Types`.
+  _Resolution:_ Create a canonical lookup table `Relationship_Types`.
 
 ### 5.3 3NF Decomposed Schema
 
 #### 1. `Observers`
+
 ```sql
 CREATE TABLE Observers (
     observer_id VARCHAR(64) PRIMARY KEY,
@@ -300,6 +324,7 @@ CREATE TABLE Observers (
 ```
 
 #### 2. `Scan_Statuses`
+
 ```sql
 CREATE TABLE Scan_Statuses (
     status_code VARCHAR(32) PRIMARY KEY,
@@ -310,7 +335,9 @@ CREATE TABLE Scan_Statuses (
 ```
 
 #### 3. `Scans`
+
 Tracks DOM pagination and validation checkpoints.
+
 ```sql
 CREATE TABLE Scans (
     scan_id VARCHAR(64) PRIMARY KEY,
@@ -330,7 +357,9 @@ CREATE TABLE Scans (
 ```
 
 #### 4. `Snapshots`
+
 A validated social graph baseline tied to a clean scan.
+
 ```sql
 CREATE TABLE Snapshots (
     snapshot_id VARCHAR(64) PRIMARY KEY,
@@ -346,7 +375,9 @@ CREATE TABLE Snapshots (
 ```
 
 #### 5. `Users`
+
 Canonical directory of Instagram accounts observed in the graph.
+
 ```sql
 CREATE TABLE Users (
     user_id VARCHAR(64) PRIMARY KEY,
@@ -361,7 +392,9 @@ CREATE TABLE Users (
 ```
 
 #### 6. `Relationship_Types`
+
 Deterministic lookup for graph edge taxonomy.
+
 ```sql
 CREATE TABLE Relationship_Types (
     relationship_type_id INTEGER PRIMARY KEY,
@@ -374,7 +407,9 @@ CREATE TABLE Relationship_Types (
 ```
 
 #### 7. `Snapshot_Relationships`
+
 The normalized edge table mapping users into snapshot states.
+
 ```sql
 CREATE TABLE Snapshot_Relationships (
     snapshot_id VARCHAR(64) NOT NULL,
@@ -389,7 +424,9 @@ CREATE TABLE Snapshot_Relationships (
 ```
 
 #### 8. `Change_Types` & `Relationship_Deltas`
+
 Captures historical diffs between consecutive snapshots ($\Delta(S_{t-1}, S_t)$).
+
 ```sql
 CREATE TABLE Change_Types (
     change_type_id INTEGER PRIMARY KEY,
@@ -414,7 +451,9 @@ CREATE TABLE Relationship_Deltas (
 ```
 
 #### 9. `Snapshot_Metrics`
+
 Stores computed topological characteristics for the network state.
+
 ```sql
 CREATE TABLE Snapshot_Metrics (
     metric_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -432,10 +471,13 @@ CREATE TABLE Snapshot_Metrics (
 ## 6. Boyce-Codd Normal Form (BCNF)
 
 ### 6.1 Definition & Requirements
+
 A relation $R$ is in **Boyce-Codd Normal Form (BCNF)** if and only if:
+
 - For every non-trivial functional dependency $X \to Y$, **$X$ is a Superkey** of $R$.
 
 ### 6.2 Comparison: 3NF vs. BCNF
+
 In 3NF, a dependency $X \to Y$ is tolerated even if $X$ is **not** a superkey, provided that $Y$ is a **prime attribute** (a member of some candidate key).
 BCNF strictly removes this concession. BCNF permits no dependencies on non-superkeys, eliminating subtle redundancies when candidate keys overlap.
 
@@ -444,6 +486,7 @@ BCNF strictly removes this concession. BCNF permits no dependencies on non-super
 Let us evaluate every candidate key and dependency across the schema:
 
 #### Relation 1: `Users`
+
 - **Candidate Keys:**
   1. $\text{CK}_1 = \{\text{user\_id}\}$ (numeric internal / IG ID)
   2. $\text{CK}_2 = \{\text{username}\}$ (Instagram handle is globally unique at any given time)
@@ -456,6 +499,7 @@ Let us evaluate every candidate key and dependency across the schema:
   - **Verdict:** `Users` is strictly in **BCNF**.
 
 #### Relation 2: `Snapshot_Relationships`
+
 - **Candidate Key:** $\text{CK} = \{\text{snapshot\_id}, \text{target\_user\_id}\}$
 - **Functional Dependency:**
   $$\{\text{snapshot\_id}, \text{target\_user\_id}\} \to \{\text{relationship\_type\_id}, \text{observed\_at}\}$$
@@ -465,18 +509,21 @@ Let us evaluate every candidate key and dependency across the schema:
   - **Verdict:** `Snapshot_Relationships` is strictly in **BCNF**.
 
 #### Potential BCNF Violation: The Audit Handle Mapping Dilemma
+
 Suppose during collection, we designed an audit table logging relationships using both the numeric user ID and the handle extracted from the DOM:
 
 $$\text{Scan\_Edge\_Audit}(\underline{\text{scan\_id}}, \underline{\text{target\_user\_id}}, \text{target\_username}, \text{relationship\_type\_id})$$
 
 In this scenario:
+
 - **Candidate Key 1:** $\{\text{scan\_id}, \text{target\_user\_id}\}$
 - **Candidate Key 2:** $\{\text{scan\_id}, \text{target\_username}\}$
 - **Functional Dependency:**
   $$\text{target\_username} \to \text{target\_user\_id}$$
-  *(and vice-versa, $\text{target\_user\_id} \to \text{target\_username}$)*
+  _(and vice-versa, $\text{target\_user\_id} \to \text{target\_username}$)_
 
 **Evaluation:**
+
 - Is $\text{target\_username}$ a superkey of $\text{Scan\_Edge\_Audit}$? **No** (it cannot identify $\text{scan\_id}$ or $\text{relationship\_type\_id}$).
 - Is $\text{target\_user\_id}$ a prime attribute? **Yes** (it belongs to Candidate Key 1).
 - **Result:** This structure satisfies **3NF**, but **VIOLATES BCNF** because the determinant $\text{target\_username}$ is not a superkey!
@@ -484,6 +531,7 @@ In this scenario:
 
 **BCNF Decomposition Solution:**
 Decompose into two relations where every determinant is a superkey:
+
 1. $R_1(\underline{\text{target\_user\_id}}, \text{target\_username})$ $\implies$ encapsulated cleanly within our normalized `Users` table!
 2. $R_2(\underline{\text{scan\_id}}, \underline{\text{target\_user\_id}}, \text{relationship\_type\_id})$ $\implies$ encapsulated cleanly in `Snapshot_Relationships` (or `Scan_Relationships`).
 
@@ -493,13 +541,13 @@ In our final schema, all natural keys / surrogate keys are factored into `Users`
 
 ## 7. Normalization Progression Summary
 
-| Normal Form | Requirement | Anomalies Removed in Brutus |
-|---|---|---|
-| **UNF** | Flat record / nested documents. | N/A (Baseline raw input). |
-| **1NF** | Atomic attribute values, no repeating groups, unique primary key. | Removed nested arrays of users and deltas; flat rows. |
-| **2NF** | In 1NF + no partial dependencies (all non-key attributes depend on whole PK). | Separated `Users` and `Snapshots` from composite `Snapshot_Relationships`; user info no longer duplicated per edge. |
-| **3NF** | In 2NF + no transitive dependencies ($X \to Y \implies X$ is superkey or $Y$ is prime). | Separated `Observers`, `Scans`, `Scan_Statuses`, `Relationship_Types`, `Change_Types`, and `Snapshot_Metrics`. |
-| **BCNF** | In 3NF + for *all* non-trivial $X \to Y$, $X$ must be a superkey. | Eliminated overlapping candidate key dependencies between `username` and `user_id` across scan edges. |
+| Normal Form | Requirement                                                                             | Anomalies Removed in Brutus                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **UNF**     | Flat record / nested documents.                                                         | N/A (Baseline raw input).                                                                                           |
+| **1NF**     | Atomic attribute values, no repeating groups, unique primary key.                       | Removed nested arrays of users and deltas; flat rows.                                                               |
+| **2NF**     | In 1NF + no partial dependencies (all non-key attributes depend on whole PK).           | Separated `Users` and `Snapshots` from composite `Snapshot_Relationships`; user info no longer duplicated per edge. |
+| **3NF**     | In 2NF + no transitive dependencies ($X \to Y \implies X$ is superkey or $Y$ is prime). | Separated `Observers`, `Scans`, `Scan_Statuses`, `Relationship_Types`, `Change_Types`, and `Snapshot_Metrics`.      |
+| **BCNF**    | In 3NF + for _all_ non-trivial $X \to Y$, $X$ must be a superkey.                       | Eliminated overlapping candidate key dependencies between `username` and `user_id` across scan edges.               |
 
 ---
 
