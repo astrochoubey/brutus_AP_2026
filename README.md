@@ -826,7 +826,8 @@ Open a pull request with a clear description of the change and the reasoning beh
 ## Contributors
 
 - [Priyanshu Shrivastava](https://github.com/priyanshuuu777)
-- Kushagra Sharma
+- [Kushagra](https://github.com/nottkushagra)
+- [Nitya Pawar](https://github.com/nityapawar495-sys)
 - [Prachi Choubey](https://github.com/astrochoubey)
 
 ---
