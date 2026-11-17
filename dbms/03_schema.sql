@@ -50,3 +50,60 @@ CREATE TABLE IF NOT EXISTS users (
     first_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS relationship_types (
+    relationship_type_id INTEGER PRIMARY KEY,
+    type_code VARCHAR(32) NOT NULL UNIQUE,
+    type_label VARCHAR(64) NOT NULL,
+    follows_observer BOOLEAN NOT NULL,
+    followed_by_observer BOOLEAN NOT NULL,
+    is_mutual BOOLEAN NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS snapshot_relationships (
+    snapshot_id VARCHAR(64) NOT NULL,
+    target_user_id VARCHAR(64) NOT NULL,
+    relationship_type_id INTEGER NOT NULL,
+    observed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (snapshot_id, target_user_id),
+    FOREIGN KEY (snapshot_id) REFERENCES snapshots(snapshot_id) ON DELETE CASCADE,
+    FOREIGN KEY (target_user_id) REFERENCES users(user_id) ON DELETE RESTRICT,
+    FOREIGN KEY (relationship_type_id) REFERENCES relationship_types(relationship_type_id)
+);
+
+CREATE TABLE IF NOT EXISTS change_types (
+    change_type_id INTEGER PRIMARY KEY,
+    type_code VARCHAR(32) NOT NULL UNIQUE,
+    description VARCHAR(128) NOT NULL,
+    is_churn BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS relationship_deltas (
+    delta_id BIGSERIAL PRIMARY KEY,
+    from_snapshot_id VARCHAR(64) NOT NULL,
+    to_snapshot_id VARCHAR(64) NOT NULL,
+    target_user_id VARCHAR(64) NOT NULL,
+    change_type_id INTEGER NOT NULL,
+    detected_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (from_snapshot_id) REFERENCES snapshots(snapshot_id) ON DELETE CASCADE,
+    FOREIGN KEY (to_snapshot_id) REFERENCES snapshots(snapshot_id) ON DELETE CASCADE,
+    FOREIGN KEY (target_user_id) REFERENCES users(user_id) ON DELETE RESTRICT,
+    FOREIGN KEY (change_type_id) REFERENCES change_types(change_type_id),
+    CONSTRAINT uq_delta_event UNIQUE (from_snapshot_id, to_snapshot_id, target_user_id, change_type_id)
+);
+
+CREATE TABLE IF NOT EXISTS snapshot_metrics (
+    metric_id BIGSERIAL PRIMARY KEY,
+    snapshot_id VARCHAR(64) NOT NULL UNIQUE,
+    reciprocity_ratio DOUBLE PRECISION NOT NULL CHECK (reciprocity_ratio >= 0.0 AND reciprocity_ratio <= 1.0),
+    turnover_rate DOUBLE PRECISION NOT NULL CHECK (turnover_rate >= 0.0),
+    network_density DOUBLE PRECISION CHECK (network_density >= 0.0 AND network_density <= 1.0),
+    computed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (snapshot_id) REFERENCES snapshots(snapshot_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_observer ON snapshots(observer_id);
+CREATE INDEX IF NOT EXISTS idx_scans_observer ON scans(observer_id);
+CREATE INDEX IF NOT EXISTS idx_relationships_user ON snapshot_relationships(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_deltas_target_user ON relationship_deltas(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
