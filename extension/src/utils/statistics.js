@@ -64,3 +64,14 @@ export function computeNetworkMetrics({ followers = 0, following = 0, mutuals = 
         followRatio: calculateFollowRatio(followers, following)
     };
 }
+
+export function calculateGrowthRate(currentCount, previousCount) {
+  if (!previousCount || previousCount <= 0) return 0.0;
+  return parseFloat((((currentCount - previousCount) / previousCount) * 100).toFixed(2));
+}
+
+export function calculateRetentionRate(retainedCount, baselineCount) {
+  if (!baselineCount || baselineCount <= 0) return 0.0;
+  const rate = (Math.max(0, retainedCount) / baselineCount) * 100;
+  return parseFloat(Math.min(100.0, rate).toFixed(2));
+}

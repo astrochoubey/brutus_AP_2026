@@ -58,3 +58,17 @@ export function validateScanQuality(reportedCount, collectedCount, duplicateCoun
         timestamp: new Date().toISOString()
     };
 }
+
+export function validateSnapshotIntegrity(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') {
+    return { isValid: false, reason: 'Snapshot must be a non-null object' };
+  }
+  const { totalFollowers, totalFollowing, totalMutuals } = snapshot;
+  if (!Number.isFinite(totalFollowers) || totalFollowers < 0 || !Number.isFinite(totalFollowing) || totalFollowing < 0 || !Number.isFinite(totalMutuals) || totalMutuals < 0) {
+    return { isValid: false, reason: 'Metrics must be non-negative finite numbers' };
+  }
+  if (totalMutuals > totalFollowers || totalMutuals > totalFollowing) {
+    return { isValid: false, reason: 'Mutuals count cannot exceed followers or following' };
+  }
+  return { isValid: true, reason: null };
+}

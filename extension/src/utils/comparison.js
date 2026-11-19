@@ -97,3 +97,17 @@ export function computeSnapshotDiff(prevFollowers = [], currFollowers = [], prev
         unfollowed
     };
 }
+
+export function generateSnapshotDeltas(diff = {}, detectedAt = new Date().toISOString()) {
+  const deltas = [];
+  const appendDeltas = (users, deltaType) => {
+    for (const u of (users || [])) {
+      deltas.push({ targetUserId: u.id || u.username, targetUsername: u.username, deltaType, detectedAt });
+    }
+  };
+  appendDeltas(diff.newFollowers, 'NEW_FOLLOWER');
+  appendDeltas(diff.lostFollowers, 'LOST_FOLLOWER');
+  appendDeltas(diff.newFollowing, 'NEW_FOLLOWING');
+  appendDeltas(diff.unfollowed, 'UNFOLLOWED');
+  return deltas;
+}
