@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Brutus</title>
+  <!--
+    Chrome extension popups must be HTML files.
+    The original manifest.json pointed to Popup.jsx directly — Chrome cannot load JSX.
+    This file is the minimum required HTML entry point for the popup.
+    Vite builds this file and replaces the script tag with the compiled bundle.
+  -->
+</head>
+<body>
+  <!-- The React popup mounts here (matches createRoot target in popup-main.jsx) -->
+  <div id="popup-root"></div>
+  <script type="module" src="/src/popup-main.jsx"></script>
+</body>
+</html>

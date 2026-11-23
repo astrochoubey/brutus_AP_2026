@@ -12,16 +12,16 @@
     "https://*.instagram.com/*"
   ],
   "action": {
-    "default_popup": "src/popup/Popup.jsx",
+    "default_popup": "popup.html",
     "default_icon": {
-      "16": "public/icons/icon16.png",
-      "32": "public/icons/icon32.png",
-      "48": "public/icons/icon48.png",
-      "128": "public/icons/icon128.png"
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
   },
   "background": {
-    "service_worker": "src/background/serviceWorker.js"
+    "service_worker": "background/serviceWorker.js"
   },
   "content_scripts": [
     {
@@ -29,14 +29,14 @@
         "https://*.instagram.com/*"
       ],
       "js": [
-        "src/content/instagram.js"
+        "content/instagram.js"
       ]
     }
   ],
   "icons": {
-    "16": "public/icons/icon16.png",
-    "32": "public/icons/icon32.png",
-    "48": "public/icons/icon48.png",
-    "128": "public/icons/icon128.png"
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }

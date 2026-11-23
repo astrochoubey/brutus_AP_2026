@@ -1,2 +1,63 @@
-/* Future responsibility:
-   Global styling definitions, theme variables, and reset styles. */
+/* styles.css — Global theme variables and reset for Brutus.
+
+   Design system — four colours only:
+     Spring Meadow  #CAFFA6  — main accent
+     Teal Waters    #204654  — primary text, dark surfaces
+     Glacial Sky    #A9E0F1  — secondary backgrounds
+     Morning Mist   #F7F9E1  — main background
+*/
+
+/* ---- CSS Variables ---- */
+:root {
+  --spring-meadow: #CAFFA6;
+  --teal-waters: #204654;
+  --glacial-sky: #A9E0F1;
+  --morning-mist: #F7F9E1;
+
+  /* Derived shades — still within the palette */
+  --teal-light: #2d5f70;
+  --meadow-dark: #9fd97e;
+
+  /* Typography */
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-sans: system-ui, -apple-system, sans-serif;
+
+  /* Spacing */
+  --radius: 10px;
+  --gap: 12px;
+  --gap-lg: 20px;
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--morning-mist);
+  color: var(--teal-waters);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-serif);
+  color: var(--teal-waters);
+}
+
+button {
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+
+a {
+  color: var(--teal-waters);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
