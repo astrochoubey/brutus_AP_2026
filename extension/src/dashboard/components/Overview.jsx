@@ -17,10 +17,10 @@ export default function Overview({ snapshot }) {
   const cards = [
     { label: 'Followers',           value: metrics?.totalFollowers },
     { label: 'Following',           value: metrics?.totalFollowing },
-    { label: 'Mutuals',             value: metrics?.totalMutuals },
-    { label: 'Not Following Back',  value: metrics?.followingOnly },
-    { label: "Don't Follow Back",   value: metrics?.followersOnly },
-    { label: 'Reciprocity',         value: metrics ? `${(metrics.reciprocity * 100).toFixed(1)}%` : null },
+    { label: 'Mutuals',             value: metrics?.isIncomplete ? '—' : metrics?.totalMutuals },
+    { label: 'Not Following Back',  value: metrics?.isIncomplete ? '—' : metrics?.followingOnly },
+    { label: "Don't Follow Back",   value: metrics?.isIncomplete ? '—' : metrics?.followersOnly },
+    { label: 'Reciprocity',         value: metrics ? (metrics.isIncomplete ? '—' : `${(metrics.reciprocity * 100).toFixed(1)}%`) : null },
     { label: 'Follow Ratio',        value: metrics?.followRatio }
   ];
 

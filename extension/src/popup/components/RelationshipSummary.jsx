@@ -15,10 +15,22 @@ export default function RelationshipSummary({ summary }) {
     );
   }
 
+  if (summary.isIncomplete) {
+    const missing = summary.followersCount > 0 ? 'Following' : 'Followers';
+    return (
+      <div className="rel-summary">
+        <div className="rel-row">
+          <span>Scan your {missing} list to complete mutual &amp; reciprocity analysis.</span>
+        </div>
+      </div>
+    );
+  }
+
   const rows = [
-    { label: 'Mutual connections',   count: summary.mutualsCount ?? 0 },
-    { label: 'Not following back',   count: summary.notFollowingBackCount ?? 0 },
-    { label: 'Don\'t follow back',   count: summary.dontFollowBackCount ?? 0 }
+    { label: 'Mutual followers',        count: (summary.mutualsCount ?? 0).toLocaleString() },
+    { label: 'Not following me back',   count: (summary.notFollowingBackCount ?? 0).toLocaleString() },
+    { label: 'Fans / Not followed back',count: (summary.dontFollowBackCount ?? 0).toLocaleString() },
+    { label: 'Reciprocity',             count: `${(summary.reciprocity ?? 0).toFixed(1)}%` }
   ];
 
   return (
@@ -26,7 +38,7 @@ export default function RelationshipSummary({ summary }) {
       {rows.map((row) => (
         <div className="rel-row" key={row.label}>
           <span>{row.label}</span>
-          <span className="rel-count">{row.count.toLocaleString()}</span>
+          <span className="rel-count">{row.count}</span>
         </div>
       ))}
     </div>

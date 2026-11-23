@@ -53,6 +53,7 @@ export function calculateTurnoverRate(gainedCount, lostCount, baselineCount) {
 export function computeNetworkMetrics({ followers = 0, following = 0, mutuals = 0 }) {
     const followingOnly = Math.max(0, following - mutuals);
     const followersOnly = Math.max(0, followers - mutuals);
+    const isIncomplete = followers === 0 || following === 0;
 
     return {
         totalFollowers: followers,
@@ -61,7 +62,8 @@ export function computeNetworkMetrics({ followers = 0, following = 0, mutuals = 
         followingOnly,
         followersOnly,
         reciprocity: calculateReciprocity(mutuals, following),
-        followRatio: calculateFollowRatio(followers, following)
+        followRatio: calculateFollowRatio(followers, following),
+        isIncomplete
     };
 }
 

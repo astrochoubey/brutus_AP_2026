@@ -277,6 +277,8 @@ export function createSnapshot({ followers = [], following = [], metadata = {} }
   const relationships = calculateRelationships(followersRes.users, followingRes.users);
   const now = new Date();
   const id = `snapshot_${now.getTime()}_${Math.random().toString(36).substring(2, 7)}`;
+  const isIncomplete = followersRes.users.length === 0 || followingRes.users.length === 0;
+  const reciprocity = parseFloat((relationships.stats.reciprocityRate * 100).toFixed(2));
 
   return {
     id,
@@ -290,6 +292,9 @@ export function createSnapshot({ followers = [], following = [], metadata = {} }
     mutuals: relationships.mutuals,
     dontFollowBack: relationships.dontFollowBack,
     notFollowedBack: relationships.notFollowedBack,
+    reciprocity,
+    reciprocityRate: relationships.stats.reciprocityRate,
+    isIncomplete,
     stats: relationships.stats,
     metadata: {
       source: 'brutus-background',

@@ -98,10 +98,42 @@ export function isInstagramPage() {
 }
 
 /**
- * @return {boolean} true when the URL indicates the Followers overlay is open
+ * @return {boolean} true when the URL or dialog heading indicates the Followers overlay is open
  */
 export function isFollowersDialogOpen() {
-  return window.location.pathname.includes('/followers');
+  if (typeof window === 'undefined') return false;
+  const path = (window.location.pathname || '').toLowerCase();
+  const search = (window.location.search || '').toLowerCase();
+  if (path.includes('/followers') || search.includes('followers')) return true;
+
+  const dialog = document.querySelector('[role="dialog"]');
+  if (!dialog) return false;
+
+  // Check dialog title / headings
+  const headings = dialog.querySelectorAll('h1, h2, h3, [role="heading"]');
+  for (const h of headings) {
+    const text = (h.textContent || '').trim().toLowerCase();
+    if (text === 'followers') return true;
+    if (text === 'following') return false;
+  }
+
+  // Check direct title elements in header container
+  const headerElem = dialog.querySelector('header') || dialog.firstElementChild;
+  if (headerElem) {
+    const headerText = (headerElem.textContent || '').trim().toLowerCase();
+    if (headerText.startsWith('followers')) return true;
+    if (headerText.startsWith('following')) return false;
+  }
+
+  // Check tab element if tabbed modal
+  const activeTab = dialog.querySelector('[role="tab"][aria-selected="true"]');
+  if (activeTab) {
+    const tabText = (activeTab.textContent || '').trim().toLowerCase();
+    if (tabText.includes('follower')) return true;
+    if (tabText.includes('following')) return false;
+  }
+
+  return false;
 }
 
 /**
@@ -109,18 +141,31 @@ export function isFollowersDialogOpen() {
  *
  * Strategy (resilient to CSS-class churn):
  *   1. Find every element with role="dialog".
- *   2. Filter to ones that are visible and contain ≥ 1 profile link.
+ *   2. Filter to ones that are visible and contain ≥ 1 profile link,
+ *      ensuring it is not the Following dialog.
  *   3. Fall back to fixed-position overlays if role="dialog" is absent
  *      but the URL still contains /followers/.
  *
  * @return {Element|null}
  */
 export function findFollowersDialog() {
-  // Strategy 1 – role="dialog"
+  if (typeof document === 'undefined') return null;
   const dialogs = document.querySelectorAll('[role="dialog"]');
   for (const d of dialogs) {
     if (d.offsetParent === null &&
         getComputedStyle(d).position !== 'fixed') continue;        // hidden
+
+    // Ensure this dialog is not the Following dialog
+    const headings = d.querySelectorAll('h1, h2, h3, [role="heading"]');
+    let isFollowing = false;
+    for (const h of headings) {
+      if ((h.textContent || '').trim().toLowerCase() === 'following') {
+        isFollowing = true;
+        break;
+      }
+    }
+    if (isFollowing) continue;
+
     if (d.querySelectorAll('a[href^="/"]').length > 0) return d;   // has links
   }
 
@@ -176,6 +221,7 @@ export function findScrollableContainer(dialog) {
  * @return {string|null}
  */
 export function extractUsernameFromLink(anchor) {
+  if (!anchor || typeof anchor.getAttribute !== 'function') return null;
   const href = anchor.getAttribute('href');
   if (!href) return null;
 
@@ -417,7 +463,13 @@ async function sendFollowersToBackground(followers) {
 
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message && (message.type === 'scanFollowers' || message.type === 'startScan')) {
+    if (message && (message.type === 'scanFollowers' || message.type === 'startScan' || message.type === 'scan')) {
+      const dialog = findFollowersDialog();
+      const isOpen = isFollowersDialogOpen() || (dialog !== null);
+      if (!isOpen) {
+        return false; // Not a followers dialog, let following.js handle it
+      }
+
       _log('Received scan trigger for followers.');
 
       collectFollowers()

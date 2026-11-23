@@ -13,11 +13,15 @@ export default function Stats({ snapshot }) {
 
   const totalFollowers = snapshot?.totalFollowers ?? snapshot?.stats?.followersCount ?? snapshot?.followers?.length;
   const totalFollowing = snapshot?.totalFollowing ?? snapshot?.stats?.followingCount ?? snapshot?.following?.length;
-  const totalMutuals = snapshot?.totalMutuals ?? snapshot?.stats?.mutualsCount ?? snapshot?.mutuals?.length;
-  const notFollowingBack = snapshot?.stats?.notFollowingBackCount ?? (
-    totalFollowing !== undefined && totalMutuals !== undefined
-      ? Math.max(0, totalFollowing - totalMutuals)
-      : undefined
+  const isIncomplete = !totalFollowers || !totalFollowing;
+
+  const totalMutuals = isIncomplete ? undefined : (snapshot?.totalMutuals ?? snapshot?.stats?.mutualsCount ?? snapshot?.mutuals?.length);
+  const notFollowingBack = isIncomplete ? undefined : (
+    snapshot?.stats?.notFollowingBackCount ?? (
+      totalFollowing !== undefined && totalMutuals !== undefined
+        ? Math.max(0, totalFollowing - totalMutuals)
+        : undefined
+    )
   );
 
   const cards = [
