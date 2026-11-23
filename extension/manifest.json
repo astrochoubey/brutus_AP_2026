@@ -21,7 +21,8 @@
     }
   },
   "background": {
-    "service_worker": "src/background/serviceWorker.js"
+    "service_worker": "src/background/serviceWorker.js",
+    "type": "module"
   },
   "content_scripts": [
     {
@@ -29,7 +30,8 @@
         "https://*.instagram.com/*"
       ],
       "js": [
-        "src/content/instagram.js"
+        "src/content/instagram.js",
+        "src/content/followers.js"
       ]
     }
   ],
