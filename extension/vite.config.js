@@ -51,19 +51,20 @@ export default defineConfig({
         // Popup — mounted by src/popup-main.jsx
         popup: resolve(__dirname, 'popup.html'),
 
-        // Service worker — Prachi's file. We include it so it is copied to dist.
-        // It must remain a plain (non-bundled) script for Chrome's service worker.
+        // Service worker — Prachi's file.
         serviceWorker: resolve(__dirname, 'src/background/serviceWorker.js'),
 
-        // Content script entry — Kushagra's file.
-        instagram: resolve(__dirname, 'src/content/instagram.js')
+        // Content scripts — Kushagra's files.
+        instagram: resolve(__dirname, 'src/content/instagram.js'),
+        followers: resolve(__dirname, 'src/content/followers.js')
       },
 
       output: {
-        // Keep the entry file names predictable so manifest.json references work.
+        // Keep the entry file names matching manifest.json references.
         entryFileNames: (chunk) => {
-          if (chunk.name === 'serviceWorker') return 'background/serviceWorker.js';
-          if (chunk.name === 'instagram')     return 'content/instagram.js';
+          if (chunk.name === 'serviceWorker') return 'src/background/serviceWorker.js';
+          if (chunk.name === 'instagram')     return 'src/content/instagram.js';
+          if (chunk.name === 'followers')     return 'src/content/followers.js';
           return '[name].js';
         },
         chunkFileNames: 'assets/[name]-[hash].js',

@@ -1,34 +1,30 @@
-// messageTypes.js
-// Message action type constants used between the popup, dashboard,
-// and the background service worker.
-//
-// COLLABORATION NOTE:
-// Prachi owns the service worker and sendMessage/messageHandlers implementation.
-// These constants define the agreed message contract so both the UI (Priyanshu)
-// and the service worker (Prachi) use the same action strings.
+/**
+ * Brutus – Instagram Network Observatory
+ * Message type constants exchanged across runtime contexts.
+ */
 
-export const MSG = {
-  // Sent from the popup to ask the service worker to start a full scan.
-  START_SCAN: 'START_SCAN',
+export const MESSAGE_TYPES = Object.freeze({
+  SCAN_FOLLOWERS: 'scanFollowers',
+  SCAN_FOLLOWING: 'scanFollowing',
+  FOLLOWERS_DATA: 'followersData',
+  FOLLOWING_DATA: 'followingData',
+  CREATE_SNAPSHOT: 'createSnapshot',
+  GET_LATEST_SNAPSHOT: 'getLatestSnapshot',
+  GET_SNAPSHOTS: 'getSnapshots',
+  GET_SNAPSHOT_HISTORY: 'getSnapshotHistory',
+  CLEAR_SNAPSHOTS: 'clearSnapshots',
+  GET_PENDING_DATA: 'getPendingData',
+  CALCULATE_RELATIONSHIPS: 'calculateRelationships',
+});
 
-  // Sent from the service worker back to the popup with scan progress updates.
+// Also export MSG mapping for UI components
+export const MSG = Object.freeze({
+  START_SCAN: 'scanFollowers',
   SCAN_PROGRESS: 'SCAN_PROGRESS',
-
-  // Sent when a scan finishes (complete, partial, or failed).
   SCAN_COMPLETE: 'SCAN_COMPLETE',
-
-  // Sent from the popup or dashboard to request the latest snapshot data.
-  GET_SNAPSHOT: 'GET_SNAPSHOT',
-
-  // Response carrying the snapshot data.
+  GET_SNAPSHOT: 'getLatestSnapshot',
   SNAPSHOT_DATA: 'SNAPSHOT_DATA',
-
-  // Request for the full scan history list.
-  GET_SCAN_HISTORY: 'GET_SCAN_HISTORY',
-
-  // Response carrying the scan history list.
+  GET_SCAN_HISTORY: 'getSnapshots',
   SCAN_HISTORY_DATA: 'SCAN_HISTORY_DATA',
-
-  // Generic error response.
   ERROR: 'ERROR'
-};
+});
