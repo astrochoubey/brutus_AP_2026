@@ -4,8 +4,11 @@
 // Chrome storage keys used by the extension.
 export const STORAGE_KEYS = {
   CURRENT_SNAPSHOT: 'brutus_current_snapshot',
+  LATEST: 'brutus_latest_snapshot',
+  SNAPSHOTS: 'brutus_snapshots',
   SCAN_HISTORY: 'brutus_scan_history',
-  SETTINGS: 'brutus_settings'
+  SETTINGS: 'brutus_settings',
+  PENDING: 'brutus_pending_scan'
 };
 
 // Confidence score below which a scan is considered PARTIAL.

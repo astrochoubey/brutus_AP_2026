@@ -268,15 +268,14 @@ export async function collectFollowers() {
              scrollAttempts: 0, elapsedSeconds: 0, partial: false, error: msg };
   }
 
-  if (!isFollowersDialogOpen()) {
+  const dialog = findFollowersDialog();
+  if (!dialog && !isFollowersDialogOpen()) {
     const msg = 'Followers dialog is not open. Open a profile and click "followers" first.';
     _err(msg);
     return { success: false, followers: [], count: 0,
              scrollAttempts: 0, elapsedSeconds: 0, partial: false, error: msg };
   }
 
-  // ── locate DOM elements ─────────────────────────────────────────
-  const dialog = findFollowersDialog();
   if (!dialog) {
     const msg = 'Could not locate the Followers dialog element in the DOM.';
     _err(msg);

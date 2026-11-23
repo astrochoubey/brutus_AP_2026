@@ -667,9 +667,21 @@ npm run build
 1. Open Chrome and navigate to `chrome://extensions`
 2. Enable **Developer Mode** (toggle in the top-right corner)
 3. Click **Load unpacked**
-4. Select the `extension/dist` directory (or the appropriate Vite output directory)
+4. Select the `extension/dist` directory (or `extension` directly)
 
-> Note: The exact output directory depends on the final Vite configuration. Check `extension/vite.config.js` once it is implemented.
+**How to Use:**
+
+1. Navigate to your logged-in Instagram profile page (`https://www.instagram.com/<your-username>/`).
+2. Open your **Followers** dialog or **Following** dialog.
+3. Click the Brutus extension icon in your Chrome toolbar to open the popup dashboard.
+4. Click **Scan Now** to extract connections and compute reciprocal relationship metrics (Mutuals, Not Following Back, Fans).
+5. Open the full-page dashboard at any time via the **Dashboard ↗** button.
+
+**Module Communication Architecture:**
+
+- **Content Scripts (`src/content/followers.js`, `src/content/following.js`):** Run in-page, extract visible DOM links upon trigger, scroll incrementally, normalize usernames, and send `{ type: 'followersData' }` or `{ type: 'followingData' }` to the service worker.
+- **Background Service Worker (`src/background/serviceWorker.js`):** Routes scan commands to the active Instagram tab, computes set-based relationship intersections and differences, creates timestamped snapshots, and maintains 10-snapshot history in Chrome local storage.
+- **Popup UI (`src/popup/`):** React dashboard displaying real-time scan status, stats cards, relationship breakdowns, user search/filtering, and data quality metrics.
 
 ### Backend *(Planned)*
 
