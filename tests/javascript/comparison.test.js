@@ -49,4 +49,18 @@ describe('Relationship Classification & Snapshot Differencing', () => {
         expect(lostFollowers).toHaveLength(1);
         expect(lostFollowers[0].username).toBe('bob');
     });
+
+    it('handles controlled dummy datasets with string usernames (integration specification)', () => {
+        const followers = ['alice', 'bob', 'charlie'];
+        const following = ['alice', 'bob', 'david'];
+
+        const { mutuals, notFollowingBack, dontFollowBack, summary } = classifyRelationships(followers, following);
+
+        expect(mutuals.map(u => u.username)).toEqual(['alice', 'bob']);
+        expect(notFollowingBack.map(u => u.username)).toEqual(['david']);
+        expect(dontFollowBack.map(u => u.username)).toEqual(['charlie']);
+        expect(summary.mutualsCount).toBe(2);
+        expect(summary.notFollowingBackCount).toBe(1);
+        expect(summary.dontFollowBackCount).toBe(1);
+    });
 });

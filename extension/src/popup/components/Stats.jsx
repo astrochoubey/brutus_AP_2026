@@ -9,18 +9,22 @@
 
 export default function Stats({ snapshot }) {
   // Helper: returns formatted number or dash when data is missing
-  const val = (n) => (snapshot ? (n ?? 0).toLocaleString() : '—');
+  const val = (n) => (snapshot && n !== undefined && n !== null ? Number(n).toLocaleString() : '—');
+
+  const totalFollowers = snapshot?.totalFollowers ?? snapshot?.stats?.followersCount ?? snapshot?.followers?.length;
+  const totalFollowing = snapshot?.totalFollowing ?? snapshot?.stats?.followingCount ?? snapshot?.following?.length;
+  const totalMutuals = snapshot?.totalMutuals ?? snapshot?.stats?.mutualsCount ?? snapshot?.mutuals?.length;
+  const notFollowingBack = snapshot?.stats?.notFollowingBackCount ?? (
+    totalFollowing !== undefined && totalMutuals !== undefined
+      ? Math.max(0, totalFollowing - totalMutuals)
+      : undefined
+  );
 
   const cards = [
-    { label: 'Followers',           value: val(snapshot?.totalFollowers) },
-    { label: 'Following',           value: val(snapshot?.totalFollowing) },
-    { label: 'Mutuals',             value: val(snapshot?.totalMutuals) },
-    { label: 'Not Following Back',  value: val(
-        snapshot
-          ? Math.max(0, (snapshot.totalFollowing ?? 0) - (snapshot.totalMutuals ?? 0))
-          : undefined
-      )
-    }
+    { label: 'Followers',           value: val(totalFollowers) },
+    { label: 'Following',           value: val(totalFollowing) },
+    { label: 'Mutuals',             value: val(totalMutuals) },
+    { label: 'Not Following Back',  value: val(notFollowingBack) }
   ];
 
   return (

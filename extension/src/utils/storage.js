@@ -15,6 +15,9 @@ export const STORAGE_KEYS = Object.freeze({
   SNAPSHOTS: 'brutus_snapshots',
   LATEST: 'brutus_latest_snapshot',
   PENDING: 'brutus_pending_scan',
+  CURRENT_SNAPSHOT: 'brutus_current_snapshot',
+  SCAN_HISTORY: 'brutus_scan_history',
+  SETTINGS: 'brutus_settings',
 });
 
 /**
@@ -273,10 +276,15 @@ export function createSnapshot({ followers = [], following = [], metadata = {} }
 
   const relationships = calculateRelationships(followersRes.users, followingRes.users);
   const now = new Date();
+  const id = `snapshot_${now.getTime()}_${Math.random().toString(36).substring(2, 7)}`;
 
   return {
-    id: `snapshot_${now.getTime()}_${Math.random().toString(36).substring(2, 7)}`,
+    id,
+    snapshotId: id,
     timestamp: now.toISOString(),
+    totalFollowers: followersRes.users.length,
+    totalFollowing: followingRes.users.length,
+    totalMutuals: relationships.mutuals.length,
     followers: followersRes.users,
     following: followingRes.users,
     mutuals: relationships.mutuals,
@@ -320,6 +328,8 @@ export async function saveSnapshot(snapshot, customStorage) {
   await storage.set({
     [STORAGE_KEYS.SNAPSHOTS]: history,
     [STORAGE_KEYS.LATEST]: snapshot,
+    brutus_current_snapshot: snapshot,
+    brutus_scan_history: history,
   });
 
   return {
@@ -337,13 +347,21 @@ export async function saveSnapshot(snapshot, customStorage) {
  */
 export async function getLatestSnapshot(customStorage) {
   const storage = getStorageArea(customStorage);
-  const data = await storage.get([STORAGE_KEYS.LATEST, STORAGE_KEYS.SNAPSHOTS]);
+  const data = await storage.get([
+    STORAGE_KEYS.LATEST,
+    STORAGE_KEYS.SNAPSHOTS,
+    'brutus_current_snapshot',
+    'brutus_scan_history'
+  ]);
 
   if (data[STORAGE_KEYS.LATEST]) {
     return data[STORAGE_KEYS.LATEST];
   }
+  if (data.brutus_current_snapshot) {
+    return data.brutus_current_snapshot;
+  }
 
-  const list = data[STORAGE_KEYS.SNAPSHOTS];
+  const list = data[STORAGE_KEYS.SNAPSHOTS] || data.brutus_scan_history;
   if (Array.isArray(list) && list.length > 0) {
     return list[list.length - 1];
   }
@@ -359,8 +377,8 @@ export async function getLatestSnapshot(customStorage) {
  */
 export async function getSnapshotHistory(customStorage) {
   const storage = getStorageArea(customStorage);
-  const data = await storage.get(STORAGE_KEYS.SNAPSHOTS);
-  const list = data[STORAGE_KEYS.SNAPSHOTS];
+  const data = await storage.get([STORAGE_KEYS.SNAPSHOTS, 'brutus_scan_history']);
+  const list = data[STORAGE_KEYS.SNAPSHOTS] || data.brutus_scan_history;
   return Array.isArray(list) ? list : [];
 }
 
@@ -372,7 +390,13 @@ export async function getSnapshotHistory(customStorage) {
  */
 export async function clearSnapshots(customStorage) {
   const storage = getStorageArea(customStorage);
-  await storage.remove([STORAGE_KEYS.SNAPSHOTS, STORAGE_KEYS.LATEST, STORAGE_KEYS.PENDING]);
+  await storage.remove([
+    STORAGE_KEYS.SNAPSHOTS,
+    STORAGE_KEYS.LATEST,
+    STORAGE_KEYS.PENDING,
+    'brutus_current_snapshot',
+    'brutus_scan_history'
+  ]);
   return { success: true };
 }
 

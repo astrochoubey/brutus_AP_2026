@@ -120,14 +120,23 @@ export default function Popup() {
   async function handleScan() {
     setScanning(true);
     setScanStatus(SCAN_STATUS.SCANNING);
+    setError(null);
 
     try {
-      await sendChromeMessage(MSG.START_SCAN);
-      // Service worker will send SCAN_COMPLETE when finished.
+      const res = await sendChromeMessage(MSG.START_SCAN);
+      if (res && res.error) {
+        setScanning(false);
+        setScanStatus(SCAN_STATUS.FAILED);
+        setError(res.error);
+      } else if (res && (res.snapshot || res.snapshotCreated)) {
+        setScanning(false);
+        setScanStatus(SCAN_STATUS.COMPLETE);
+        loadStoredSnapshot();
+      }
     } catch (err) {
       setScanning(false);
       setScanStatus(SCAN_STATUS.FAILED);
-      setError('Could not start scan. Make sure you are on instagram.com.');
+      setError(err.message || 'Could not start scan. Make sure you are on instagram.com.');
     }
   }
 

@@ -56,7 +56,8 @@ export default defineConfig({
 
         // Content scripts — Kushagra's files.
         instagram: resolve(__dirname, 'src/content/instagram.js'),
-        followers: resolve(__dirname, 'src/content/followers.js')
+        followers: resolve(__dirname, 'src/content/followers.js'),
+        following: resolve(__dirname, 'src/content/following.js')
       },
 
       output: {
@@ -65,6 +66,7 @@ export default defineConfig({
           if (chunk.name === 'serviceWorker') return 'src/background/serviceWorker.js';
           if (chunk.name === 'instagram')     return 'src/content/instagram.js';
           if (chunk.name === 'followers')     return 'src/content/followers.js';
+          if (chunk.name === 'following')     return 'src/content/following.js';
           return '[name].js';
         },
         chunkFileNames: 'assets/[name]-[hash].js',

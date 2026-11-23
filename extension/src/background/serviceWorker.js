@@ -25,6 +25,85 @@ import {
   getStorageArea,
 } from '../utils/storage.js';
 
+function broadcastScanComplete(snapshot) {
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+    try {
+      chrome.runtime.sendMessage({
+        action: 'SCAN_COMPLETE',
+        type: 'SCAN_COMPLETE',
+        status: 'COMPLETE',
+        snapshot,
+      }, () => {
+        if (chrome.runtime.lastError) {}
+      });
+    } catch (_) {}
+  }
+}
+
+/**
+ * Handles scan requests initiated by the popup by finding the active Instagram tab
+ * and dispatching the collection trigger to the injected content script.
+ *
+ * @param {Object} message - Incoming message payload
+ * @returns {Promise<Object>} Response object
+ */
+export async function handleScanRequest(message) {
+  if (typeof chrome === 'undefined' || !chrome.tabs || !chrome.tabs.query) {
+    return {
+      success: false,
+      error: 'Chrome tabs API is not available.',
+    };
+  }
+
+  const tabs = await new Promise((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (res) => resolve(res || []));
+  });
+
+  const tab = tabs[0];
+  if (!tab || !tab.id) {
+    return {
+      success: false,
+      error: 'No active tab found. Please navigate to an Instagram profile.',
+    };
+  }
+
+  if (!tab.url || !tab.url.includes('instagram.com')) {
+    return {
+      success: false,
+      error: 'Please open your Instagram profile page (instagram.com) before scanning.',
+    };
+  }
+
+  const scanType = message.scanType || message.type || 'scanFollowers';
+
+  async function sendToTab(attempt = 1) {
+    return new Promise((resolve) => {
+      chrome.tabs.sendMessage(tab.id, { type: scanType }, async (res) => {
+        if (chrome.runtime.lastError) {
+          if (attempt === 1 && typeof chrome.scripting !== 'undefined' && chrome.scripting.executeScript) {
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['src/content/followers.js', 'src/content/following.js'],
+              });
+              const retryRes = await sendToTab(2);
+              return resolve(retryRes);
+            } catch (_) {}
+          }
+          resolve({
+            success: false,
+            error: 'Please open your Instagram profile and make sure the Followers or Following dialog is open.',
+          });
+        } else {
+          resolve(res || { success: true });
+        }
+      });
+    });
+  }
+
+  return await sendToTab(1);
+}
+
 /**
  * Handles incoming 'followersData' messages from content scripts or popup.
  *
@@ -47,19 +126,23 @@ export async function handleFollowersData(message, customStorage) {
 
   // If following data is already pending or caller requested forced snapshot
   if (message.forceSnapshot || (pending.following && Array.isArray(pending.following))) {
-    const following = pending.following || [];
+    const latest = await getLatestSnapshot(customStorage);
+    const following = (pending.following && Array.isArray(pending.following) && pending.following.length > 0)
+      ? pending.following
+      : (latest?.following || []);
+
     const snapshot = createSnapshot({
       followers: validation.users,
       following,
       metadata: {
         source: message.source || 'content/followers.js',
         followersTimestamp: message.timestamp || new Date().toISOString(),
-        followingTimestamp: pending.followingTimestamp || null,
+        followingTimestamp: pending.followingTimestamp || latest?.metadata?.followingTimestamp || null,
       },
     });
 
     await saveSnapshot(snapshot, customStorage);
-    await clearPendingScanData(customStorage);
+    broadcastScanComplete(snapshot);
 
     return {
       success: true,
@@ -100,19 +183,23 @@ export async function handleFollowingData(message, customStorage) {
 
   // If followers data is already pending or caller requested forced snapshot
   if (message.forceSnapshot || (pending.followers && Array.isArray(pending.followers))) {
-    const followers = pending.followers || [];
+    const latest = await getLatestSnapshot(customStorage);
+    const followers = (pending.followers && Array.isArray(pending.followers) && pending.followers.length > 0)
+      ? pending.followers
+      : (latest?.followers || []);
+
     const snapshot = createSnapshot({
       followers,
       following: validation.users,
       metadata: {
         source: message.source || 'content/following.js',
         followingTimestamp: message.timestamp || new Date().toISOString(),
-        followersTimestamp: pending.followersTimestamp || null,
+        followersTimestamp: pending.followersTimestamp || latest?.metadata?.followersTimestamp || null,
       },
     });
 
     await saveSnapshot(snapshot, customStorage);
-    await clearPendingScanData(customStorage);
+    broadcastScanComplete(snapshot);
 
     return {
       success: true,
@@ -306,6 +393,13 @@ export async function handleMessage(message, sender, sendResponse, customStorage
 
       case 'calculateRelationships':
         response = await handleCalculateRelationships(message);
+        break;
+
+      case 'scanFollowers':
+      case 'scanFollowing':
+      case 'startScan':
+      case 'START_SCAN':
+        response = await handleScanRequest(message);
         break;
 
       default:

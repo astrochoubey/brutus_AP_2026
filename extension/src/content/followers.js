@@ -268,15 +268,14 @@ export async function collectFollowers() {
              scrollAttempts: 0, elapsedSeconds: 0, partial: false, error: msg };
   }
 
-  if (!isFollowersDialogOpen()) {
+  const dialog = findFollowersDialog();
+  if (!dialog && !isFollowersDialogOpen()) {
     const msg = 'Followers dialog is not open. Open a profile and click "followers" first.';
     _err(msg);
     return { success: false, followers: [], count: 0,
              scrollAttempts: 0, elapsedSeconds: 0, partial: false, error: msg };
   }
 
-  // ── locate DOM elements ─────────────────────────────────────────
-  const dialog = findFollowersDialog();
   if (!dialog) {
     const msg = 'Could not locate the Followers dialog element in the DOM.';
     _err(msg);
@@ -383,10 +382,11 @@ export async function collectFollowers() {
  */
 async function sendFollowersToBackground(followers) {
   const message = {
-    type:      'followersData',
+    type:          'followersData',
     followers,
-    timestamp: new Date().toISOString(),
-    source:    'content/followers.js',
+    forceSnapshot: true,
+    timestamp:     new Date().toISOString(),
+    source:        'content/followers.js',
   };
 
   try {
@@ -417,8 +417,8 @@ async function sendFollowersToBackground(followers) {
 
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message && message.type === 'scanFollowers') {
-      _log('Received "scanFollowers" trigger.');
+    if (message && (message.type === 'scanFollowers' || message.type === 'startScan')) {
+      _log('Received scan trigger for followers.');
 
       collectFollowers()
         .then(async (result) => {

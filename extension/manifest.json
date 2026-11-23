@@ -6,6 +6,7 @@
   "permissions": [
     "storage",
     "activeTab",
+    "tabs",
     "scripting"
   ],
   "host_permissions": [
@@ -31,7 +32,8 @@
       ],
       "js": [
         "src/content/instagram.js",
-        "src/content/followers.js"
+        "src/content/followers.js",
+        "src/content/following.js"
       ]
     }
   ],
