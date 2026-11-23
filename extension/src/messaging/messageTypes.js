@@ -16,3 +16,15 @@ export const MESSAGE_TYPES = Object.freeze({
   GET_PENDING_DATA: 'getPendingData',
   CALCULATE_RELATIONSHIPS: 'calculateRelationships',
 });
+
+// Also export MSG mapping for UI components
+export const MSG = Object.freeze({
+  START_SCAN: 'scanFollowers',
+  SCAN_PROGRESS: 'SCAN_PROGRESS',
+  SCAN_COMPLETE: 'SCAN_COMPLETE',
+  GET_SNAPSHOT: 'getLatestSnapshot',
+  SNAPSHOT_DATA: 'SNAPSHOT_DATA',
+  GET_SCAN_HISTORY: 'getSnapshots',
+  SCAN_HISTORY_DATA: 'SCAN_HISTORY_DATA',
+  ERROR: 'ERROR'
+});
