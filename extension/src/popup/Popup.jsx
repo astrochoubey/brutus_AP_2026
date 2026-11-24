@@ -124,11 +124,15 @@ export default function Popup() {
 
     try {
       const res = await sendChromeMessage(MSG.START_SCAN);
-      if (res && res.error) {
+      if (res && (res.error || res.success === false)) {
         setScanning(false);
         setScanStatus(SCAN_STATUS.FAILED);
-        setError(res.error);
+        setError(res.error || 'Scan could not be started.');
       } else if (res && (res.snapshot || res.snapshotCreated)) {
+        setScanning(false);
+        setScanStatus(SCAN_STATUS.COMPLETE);
+        loadStoredSnapshot();
+      } else if (res && res.success && res.followers && res.followers.length > 0) {
         setScanning(false);
         setScanStatus(SCAN_STATUS.COMPLETE);
         loadStoredSnapshot();
@@ -170,6 +174,20 @@ export default function Popup() {
 
         <ScanStatus status={scanStatus} detail={getStatusDetail()} />
         <ScanButton scanning={scanning} onScan={handleScan} />
+
+        {!snapshot && (
+          <div style={{
+            fontSize: '0.78rem',
+            color: 'var(--teal-waters)',
+            background: 'var(--glacial-sky)',
+            padding: '8px 10px',
+            borderRadius: 'var(--radius)',
+            textAlign: 'center',
+            lineHeight: 1.4
+          }}>
+            💡 <strong>How to scan:</strong> Click <strong>followers</strong> or <strong>following</strong> on your Instagram profile to open the modal, then click <strong>Scan Now</strong>.
+          </div>
+        )}
 
         <Stats snapshot={snapshot} />
         <RelationshipSummary summary={classified?.summary} />

@@ -464,35 +464,69 @@ async function sendFollowersToBackground(followers) {
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message && (message.type === 'scanFollowers' || message.type === 'startScan' || message.type === 'scan')) {
-      const dialog = findFollowersDialog();
-      const isOpen = isFollowersDialogOpen() || (dialog !== null);
-      if (!isOpen) {
-        return false; // Not a followers dialog, let following.js handle it
+      let dialog = findFollowersDialog();
+      let isOpen = isFollowersDialogOpen() || (dialog !== null);
+
+      // Check if Following dialog is already open; if so, let following.js handle it
+      const followingDialog = document.querySelector('[role="dialog"]');
+      if (followingDialog) {
+        const headings = followingDialog.querySelectorAll('h1, h2, h3, [role="heading"]');
+        for (const h of headings) {
+          if ((h.textContent || '').trim().toLowerCase() === 'following') {
+            return false;
+          }
+        }
       }
 
-      _log('Received scan trigger for followers.');
+      async function executeFollowersCollection() {
+        if (!isOpen) {
+          // If Followers dialog is not open, look for the Followers link on the profile page and click it
+          const followersLink = document.querySelector('a[href$="/followers/"], a[href*="/followers"]');
+          if (followersLink) {
+            _log('Followers dialog not open. Clicking profile followers link…');
+            followersLink.click();
+            await new Promise((r) => setTimeout(r, 1200));
+            dialog = findFollowersDialog();
+            isOpen = isFollowersDialogOpen() || (dialog !== null);
+          }
+        }
 
-      collectFollowers()
-        .then(async (result) => {
+        if (!isOpen) {
+          sendResponse({
+            success: false,
+            followers: [],
+            count: 0,
+            scrollAttempts: 0,
+            elapsedSeconds: 0,
+            partial: false,
+            error: 'Followers dialog is not open. Please click "followers" on your Instagram profile to open the list, then click Scan Now.',
+          });
+          return;
+        }
+
+        _log('Received scan trigger for followers.');
+        try {
+          const result = await collectFollowers();
           if (result.success && result.followers.length > 0) {
             await sendFollowersToBackground(result.followers);
           }
           sendResponse(result);
-        })
-        .catch((err) => {
+        } catch (err) {
           _err('Collection failed with exception:', err);
           sendResponse({
-            success:        false,
-            followers:      [],
-            count:          0,
+            success: false,
+            followers: [],
+            count: 0,
             scrollAttempts: 0,
             elapsedSeconds: 0,
-            partial:        false,
-            error:          err.message || 'Unknown collection error',
+            partial: false,
+            error: err.message || 'Unknown collection error',
           });
-        });
+        }
+      }
 
-      return true; // keep the message channel open for async sendResponse
+      executeFollowersCollection();
+      return true; // Keep asynchronous message channel open
     }
   });
 

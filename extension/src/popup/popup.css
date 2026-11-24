@@ -1,6 +1,7 @@
+@import '../styles.css';
+
 /* popup.css — Styles for the Chrome extension popup.
    The popup is 380px wide. All colours use the CSS variables defined in styles.css.
-   We import styles.css through the JSX entry point so variables are available here.
 */
 
 /* ---- Popup container ---- */
