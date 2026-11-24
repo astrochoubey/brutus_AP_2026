@@ -1,0 +1,19 @@
+{
+  "name": "brutus-backend",
+  "version": "1.0.0",
+  "description": "Native Node.js REST API for Brutus Instagram Network Observatory",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "instagram",
+    "network-observatory",
+    "sqlite",
+    "native-node"
+  ],
+  "author": "",
+  "license": "MIT"
+}

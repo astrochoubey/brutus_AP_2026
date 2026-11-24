@@ -1,27 +1,37 @@
-// FilterBar.jsx — Toggle buttons for relationship category filtering.
-// Allowed filter values come from constants.js FILTER object.
+// FilterBar.jsx — Pill filter bar with dynamic live count badges.
 
 import { FILTER } from '../../utils/constants.js';
 
-const FILTERS = [
-  { value: FILTER.ALL,               label: 'All' },
-  { value: FILTER.MUTUALS,           label: 'Mutuals' },
-  { value: FILTER.NOT_FOLLOWING_BACK, label: 'Not Following Back' },
-  { value: FILTER.DONT_FOLLOW_BACK,  label: "Don't Follow Back" }
-];
+export default function FilterBar({ active, onFilter, counts = {} }) {
+  const FILTERS = [
+    { value: FILTER.ALL,                label: 'All',      count: counts.all },
+    { value: FILTER.NOT_FOLLOWING_BACK, label: 'Not Back', count: counts.notFollowingBack },
+    { value: FILTER.MUTUALS,            label: 'Mutuals',  count: counts.mutuals },
+    { value: FILTER.DONT_FOLLOW_BACK,   label: 'Fans',     count: counts.dontFollowBack }
+  ];
 
-export default function FilterBar({ active, onFilter }) {
   return (
-    <div className="filter-bar">
-      {FILTERS.map((f) => (
-        <button
-          key={f.value}
-          className={`filter-btn ${active === f.value ? 'active' : ''}`}
-          onClick={() => onFilter(f.value)}
-        >
-          {f.label}
-        </button>
-      ))}
+    <div className="filter-pill-container" role="tablist" aria-label="Audience category filters">
+      {FILTERS.map((f) => {
+        const isActive = active === f.value;
+        return (
+          <button
+            key={f.value}
+            role="tab"
+            aria-selected={isActive}
+            type="button"
+            className={`category-pill ${isActive ? 'is-active' : ''}`}
+            onClick={() => onFilter(f.value)}
+          >
+            <span>{f.label}</span>
+            {f.count !== undefined && f.count !== null && (
+              <span className="pill-counter">
+                {Number(f.count).toLocaleString()}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

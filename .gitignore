@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+extension/node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.venv/
+backend/.venv/
+
+# Environment / OS
+.DS_Store
+Thumbs.db
+
+# SQLite Databases
+*.sqlite
+*.sqlite-journal
+backend/database/*.sqlite

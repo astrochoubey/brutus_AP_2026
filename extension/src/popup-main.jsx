@@ -3,6 +3,7 @@
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import './styles.css';
 import Popup from './popup/Popup.jsx';
 
 createRoot(document.getElementById('popup-root')).render(

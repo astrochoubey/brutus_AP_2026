@@ -1,34 +1,74 @@
-/* styles.css — Global theme variables and reset for Brutus.
-
-   Design system — four colours only:
-     Spring Meadow  #CAFFA6  — main accent
-     Teal Waters    #204654  — primary text, dark surfaces
-     Glacial Sky    #A9E0F1  — secondary backgrounds
-     Morning Mist   #F7F9E1  — main background
+/* styles.css — Clear Grey & Olive Design System for Brutus.
+   Human-crafted, calm, editorial aesthetic.
+   Clear, bright surfaces with refined earthy olive accents.
 */
 
-/* ---- CSS Variables ---- */
 :root {
-  --spring-meadow: #CAFFA6;
-  --teal-waters: #204654;
-  --glacial-sky: #A9E0F1;
-  --morning-mist: #F7F9E1;
+  /* Canvas & Surfaces (Clear Warm Grey + Crisp White) */
+  --bg-canvas:           #f4f5f2;
+  --bg-surface:          #ffffff;
+  --bg-surface-elev:     #fafbfa;
+  --bg-surface-subtle:   #edf0eb;
+  --bg-surface-muted:    #e5eae2;
 
-  /* Derived shades — still within the palette */
-  --teal-light: #2d5f70;
-  --meadow-dark: #9fd97e;
+  /* Olive System */
+  --olive-deep:          #243022; /* Primary text, deep branding */
+  --olive-main:          #3d4f37; /* Primary button, key accents */
+  --olive-hover:         #31402c; /* Button hover state */
+  --olive-light:         #e8ede5; /* Active pill & card backgrounds */
+  --olive-border:        #c2cdbd; /* Olive boundary lines */
 
-  /* Typography */
-  --font-serif: Georgia, 'Times New Roman', serif;
-  --font-sans: system-ui, -apple-system, sans-serif;
+  /* Earthy Category Accents (Natural, Non-AI) */
+  --cat-mutual-bg:       #e8ede5;
+  --cat-mutual-text:     #34442f;
+  --cat-mutual-border:   #c2cdbd;
 
-  /* Spacing */
-  --radius: 10px;
-  --gap: 12px;
-  --gap-lg: 20px;
+  --cat-notback-bg:      #faeee9;
+  --cat-notback-text:    #9c452e;
+  --cat-notback-border:  #e5c4ba;
+
+  --cat-fan-bg:          #edf2f1;
+  --cat-fan-text:        #385654;
+  --cat-fan-border:      #c3d3d1;
+
+  /* Typography Colors */
+  --text-primary:        #1e241c; /* Sharp, high-contrast dark olive-charcoal */
+  --text-secondary:      #576154; /* Readable warm grey */
+  --text-muted:          #7b8578; /* Micro copy, captions, timestamps */
+  --text-inverse:        #ffffff; /* White text for olive buttons */
+
+  /* Structural Borders */
+  --border-subtle:       #e2e6df;
+  --border-default:      #d3d8ce;
+  --border-focus:        #3d4f37;
+
+  /* Elevation & Shadows */
+  --shadow-xs:           0 1px 2px rgba(36, 48, 34, 0.04);
+  --shadow-sm:           0 1px 3px rgba(36, 48, 34, 0.06), 0 1px 2px rgba(36, 48, 34, 0.03);
+  --shadow-card:         0 2px 6px rgba(36, 48, 34, 0.05), 0 1px 2px rgba(36, 48, 34, 0.03);
+  --shadow-elevated:     0 6px 16px rgba(36, 48, 34, 0.08);
+
+  /* Geometry */
+  --radius-xs:           4px;
+  --radius-sm:           6px;
+  --radius:              10px;
+  --radius-lg:           14px;
+  --radius-full:         9999px;
+
+  /* Typography Stacks */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Backward Compatibility Tokens */
+  --bg-primary:          var(--bg-canvas);
+  --accent-gold:         var(--olive-main);
+  --spring-meadow:       var(--olive-main);
+  --teal-waters:         var(--olive-deep);
+  --glacial-sky:         var(--border-subtle);
+  --morning-mist:        var(--bg-canvas);
 }
 
-/* ---- Reset ---- */
+/* Base Resets */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -37,27 +77,131 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--morning-mist);
-  color: var(--teal-waters);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3 {
-  font-family: var(--font-serif);
-  color: var(--teal-waters);
+h1, h2, h3, h4 {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 button {
   cursor: pointer;
   font-family: var(--font-sans);
+  border: none;
+  background: none;
+  outline: none;
+  color: inherit;
+}
+
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--olive-main);
+  outline-offset: 1px;
 }
 
 a {
-  color: var(--teal-waters);
+  color: var(--olive-main);
   text-decoration: none;
+  font-weight: 500;
 }
 
 a:hover {
   text-decoration: underline;
+}
+
+/* Shared Reusable Components */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  text-align: center;
+  background: var(--bg-surface-elev);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+}
+
+.empty-title {
+  font-size: 0.90rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.empty-desc {
+  font-size: 0.80rem;
+  color: var(--text-secondary);
+  max-width: 400px;
+  line-height: 1.45;
+}
+
+/* Centered Loading Component */
+.loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 14px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(61, 79, 55, 0.15);
+  border-top-color: var(--olive-main);
+  border-radius: 50%;
+  animation: brutus-spin 0.8s linear infinite;
+}
+
+@keyframes brutus-spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Error Alert Box */
+.error-box {
+  background: #faeee9;
+  border: 1px solid #e5c4ba;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.error-text {
+  font-size: 0.82rem;
+  color: #9c452e;
+  font-weight: 500;
+}
+
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-surface-subtle);
+  border-color: var(--olive-border);
 }

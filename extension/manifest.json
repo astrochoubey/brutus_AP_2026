@@ -31,9 +31,7 @@
         "https://*.instagram.com/*"
       ],
       "js": [
-        "src/content/instagram.js",
-        "src/content/followers.js",
-        "src/content/following.js"
+        "src/content/instagram.js"
       ]
     }
   ],

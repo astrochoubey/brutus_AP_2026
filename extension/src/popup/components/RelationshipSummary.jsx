@@ -1,16 +1,10 @@
-// RelationshipSummary.jsx — Human-readable summary of the three relationship categories.
-//
-// Ponytail:
-//   Input: { mutuals: 300, notFollowingBack: 120, dontFollowBack: 200 }
-//   Output: three rows showing counts and plain-language labels
+// RelationshipSummary.jsx — Compact visual reciprocity breakdown with segmented bar.
 
 export default function RelationshipSummary({ summary }) {
   if (!summary) {
     return (
-      <div className="rel-summary">
-        <div className="rel-row">
-          <span>Run a scan to see your relationship breakdown.</span>
-        </div>
+      <div className="rel-card">
+        <div className="rel-empty-text">Run a scan to generate reciprocity and relationship analysis.</div>
       </div>
     );
   }
@@ -18,29 +12,74 @@ export default function RelationshipSummary({ summary }) {
   if (summary.isIncomplete) {
     const missing = summary.followersCount > 0 ? 'Following' : 'Followers';
     return (
-      <div className="rel-summary">
-        <div className="rel-row">
-          <span>Scan your {missing} list to complete mutual &amp; reciprocity analysis.</span>
+      <div className="rel-card is-incomplete">
+        <div className="rel-header-row">
+          <span className="rel-heading">Relationship Reciprocity</span>
+          <span className="rel-tag-incomplete">Incomplete</span>
         </div>
+        <p className="rel-instruction">
+          Scan your <strong>{missing}</strong> list to enable complete mutual analysis.
+        </p>
       </div>
     );
   }
 
-  const rows = [
-    { label: 'Mutual followers',        count: (summary.mutualsCount ?? 0).toLocaleString() },
-    { label: 'Not following me back',   count: (summary.notFollowingBackCount ?? 0).toLocaleString() },
-    { label: 'Fans / Not followed back',count: (summary.dontFollowBackCount ?? 0).toLocaleString() },
-    { label: 'Reciprocity',             count: `${(summary.reciprocity ?? 0).toFixed(1)}%` }
-  ];
+  const mutuals = summary.mutualsCount ?? 0;
+  const followingOnly = summary.notFollowingBackCount ?? 0;
+  const followersOnly = summary.dontFollowBackCount ?? 0;
+  const reciprocity = Number((summary.reciprocity ?? 0).toFixed(1));
+
+  const total = mutuals + followingOnly + followersOnly;
+  const mutualsPct = total > 0 ? (mutuals / total) * 100 : 0;
+  const followingOnlyPct = total > 0 ? (followingOnly / total) * 100 : 0;
+  const followersOnlyPct = total > 0 ? (followersOnly / total) * 100 : 0;
 
   return (
-    <div className="rel-summary">
-      {rows.map((row) => (
-        <div className="rel-row" key={row.label}>
-          <span>{row.label}</span>
-          <span className="rel-count">{row.count}</span>
+    <div className="rel-card">
+      <div className="rel-header-row">
+        <span className="rel-heading">Relationship Reciprocity</span>
+        <span className="rel-reciprocity-chip">
+          {reciprocity}% Reciprocal
+        </span>
+      </div>
+
+      {/* Segmented Distribution Bar */}
+      <div className="rel-bar-track" aria-hidden="true">
+        <div
+          className="rel-bar-seg bar-mutuals"
+          style={{ width: `${mutualsPct}%` }}
+          title={`Mutuals: ${mutuals.toLocaleString()}`}
+        />
+        <div
+          className="rel-bar-seg bar-following-only"
+          style={{ width: `${followingOnlyPct}%` }}
+          title={`Not Following Back: ${followingOnly.toLocaleString()}`}
+        />
+        <div
+          className="rel-bar-seg bar-followers-only"
+          style={{ width: `${followersOnlyPct}%` }}
+          title={`Fans: ${followersOnly.toLocaleString()}`}
+        />
+      </div>
+
+      {/* Breakdown Legends */}
+      <div className="rel-legend-row">
+        <div className="legend-chip">
+          <span className="swatch swatch-mutuals" />
+          <span className="label">Mutuals:</span>
+          <span className="value">{mutuals.toLocaleString()}</span>
         </div>
-      ))}
+        <div className="legend-chip">
+          <span className="swatch swatch-following-only" />
+          <span className="label">Following only:</span>
+          <span className="value">{followingOnly.toLocaleString()}</span>
+        </div>
+        <div className="legend-chip">
+          <span className="swatch swatch-followers-only" />
+          <span className="label">Fans:</span>
+          <span className="value">{followersOnly.toLocaleString()}</span>
+        </div>
+      </div>
     </div>
   );
 }

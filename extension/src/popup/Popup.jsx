@@ -1,18 +1,5 @@
-// Popup.jsx — Root component for the Chrome extension popup.
-//
-// What it does:
-//   1. On mount, tries to load the current snapshot from chrome.storage.local.
-//   2. Classifies followers/following using classifyRelationships() from comparison.js.
-//   3. Renders Header, ScanStatus, Stats, RelationshipSummary, SearchBar, FilterBar,
-//      UserList, DataQuality — all with real data or proper empty/loading states.
-//   4. Scan button sends a START_SCAN message to the service worker.
-//
-// COLLABORATION:
-//   - Storage layer (Prachi): snapshots.js is a stub. We read chrome.storage.local directly
-//     using the agreed STORAGE_KEYS from constants.js. When Prachi's implementation lands,
-//     these keys will still work because they use the same storage.
-//   - Scan data (Kushagra): The snapshot shape we read matches NetworkSnapshot + ScanMetadata
-//     from types/models.js. When Kushagra's scanner writes data, it will be available here.
+// Popup.jsx — Root coordinator for the Brutus Chrome extension popup.
+// Clear Grey + Olive Design System with resilient snapshot loading.
 
 import { useState, useEffect } from 'react';
 import './popup.css';
@@ -27,7 +14,6 @@ import FilterBar from './components/FilterBar.jsx';
 import UserList from './components/UserList.jsx';
 import DataQuality from './components/DataQuality.jsx';
 import Loading from '../components/Loading.jsx';
-import ErrorMessage from '../components/ErrorMessage.jsx';
 
 import { classifyRelationships } from '../utils/comparison.js';
 import { STORAGE_KEYS, SCAN_STATUS, FILTER } from '../utils/constants.js';
@@ -35,108 +21,151 @@ import { sendChromeMessage } from '../messaging/sendMessage.js';
 import { MSG } from '../messaging/messageTypes.js';
 
 export default function Popup() {
-  // State: data loading
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // State: Loading & Error
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(null);
 
-  // State: scan control
-  const [scanning, setScanning] = useState(false);
-  const [scanStatus, setScanStatus] = useState(SCAN_STATUS.IDLE);
-  const [scanMeta, setScanMeta] = useState(null);
+  // State: Scan Orchestration & Metadata
+  const [scanning, setScanning]       = useState(false);
+  const [scanStatus, setScanStatus]   = useState(SCAN_STATUS.IDLE);
+  const [scanMeta, setScanMeta]       = useState(null);
+  const [lastScanType, setLastScanType] = useState('scanFollowers');
 
-  // State: network data
-  const [snapshot, setSnapshot] = useState(null);
-  const [classified, setClassified] = useState(null);
+  // State: Network Datasets
+  const [snapshot, setSnapshot]       = useState(null);
+  const [classified, setClassified]   = useState(null);
 
-  // State: list controls
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState(FILTER.ALL);
+  // State: Audience Explorer Controls
+  const [query, setQuery]             = useState('');
+  const [filter, setFilter]           = useState(FILTER.ALL);
 
-  // Load stored snapshot when popup opens.
+  // Load stored snapshot on initial popup mount
   useEffect(() => {
     loadStoredSnapshot();
   }, []);
 
-  // Listen for messages from the service worker while the popup is open.
+  // Listen for background service worker progress and completion broadcasts
   useEffect(() => {
     if (typeof chrome === 'undefined' || !chrome.runtime) return;
 
-    function handleMessage(msg) {
-      if (msg.action === MSG.SCAN_PROGRESS) {
+    function handleRuntimeMessage(msg) {
+      if (msg.action === MSG.SCAN_PROGRESS || msg.type === 'SCAN_PROGRESS') {
         setScanStatus(SCAN_STATUS.SCANNING);
       }
-      if (msg.action === MSG.SCAN_COMPLETE) {
+      if (msg.action === MSG.SCAN_COMPLETE || msg.type === 'SCAN_COMPLETE') {
         setScanning(false);
         setScanStatus(msg.status || SCAN_STATUS.COMPLETE);
-        // Reload data after a completed scan.
         loadStoredSnapshot();
       }
     }
 
-    chrome.runtime.onMessage.addListener(handleMessage);
-    return () => chrome.runtime.onMessage.removeListener(handleMessage);
+    chrome.runtime.onMessage.addListener(handleRuntimeMessage);
+    return () => chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
   }, []);
 
-  function loadStoredSnapshot() {
+  async function loadStoredSnapshot() {
     setLoading(true);
     setError(null);
 
-    // Guard: chrome.storage is only available inside the extension.
-    if (typeof chrome === 'undefined' || !chrome.storage) {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
       setLoading(false);
-      setError('Extension storage not available. Load this inside Chrome.');
+      setError('Extension storage is unavailable in this environment.');
       return;
     }
 
-    chrome.storage.local.get(
-      [STORAGE_KEYS.CURRENT_SNAPSHOT],
-      (result) => {
-        const stored = result[STORAGE_KEYS.CURRENT_SNAPSHOT];
-        if (stored) {
-          applySnapshot(stored);
+    try {
+      const storagePromise = new Promise((resolve) => {
+        try {
+          const ret = chrome.storage.local.get([STORAGE_KEYS.CURRENT_SNAPSHOT], (result) => {
+            if (chrome.runtime?.lastError) {
+              console.warn('Popup storage read warning:', chrome.runtime.lastError.message);
+              resolve({});
+            } else {
+              resolve(result || {});
+            }
+          });
+          if (ret && typeof ret.then === 'function') {
+            ret.then(resolve).catch(() => resolve({}));
+          }
+        } catch (e) {
+          console.warn('Popup storage access threw:', e);
+          resolve({});
         }
-        setLoading(false);
+      });
+
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({}), 2000));
+      const result = (await Promise.race([storagePromise, timeoutPromise])) || {};
+      const stored = result[STORAGE_KEYS.CURRENT_SNAPSHOT];
+
+      if (stored) {
+        applySnapshot(stored);
+      } else {
+        setScanStatus(SCAN_STATUS.IDLE);
       }
-    );
+    } catch (err) {
+      console.error('loadStoredSnapshot error:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // Takes a stored snapshot object and derives classified relationships from it.
   function applySnapshot(stored) {
     setSnapshot(stored);
 
-    // Scan metadata lives alongside the snapshot.
     if (stored.scanMeta) {
       setScanMeta(stored.scanMeta);
       setScanStatus(stored.scanMeta.status || SCAN_STATUS.COMPLETE);
+    } else if (stored.isIncomplete) {
+      setScanStatus(SCAN_STATUS.PARTIAL);
+    } else {
+      setScanStatus(SCAN_STATUS.COMPLETE);
     }
 
-    // Classify using existing utility — no calculation duplicated here.
-    const followers = stored.followers || [];
-    const following = stored.following || [];
-    const result = classifyRelationships(followers, following);
-    setClassified(result);
+    const followers = Array.isArray(stored.followers) ? stored.followers : [];
+    const following = Array.isArray(stored.following) ? stored.following : [];
+    try {
+      const classification = classifyRelationships(followers, following);
+      setClassified(classification);
+    } catch (e) {
+      console.warn('Classification error:', e);
+    }
   }
 
-  async function handleScan() {
+  async function handleScan(targetType) {
+    if (scanning) return;
+
     setScanning(true);
     setScanStatus(SCAN_STATUS.SCANNING);
     setError(null);
 
+    let action = targetType;
+    if (!action) {
+      if (snapshot?.followers?.length > 0 && (!snapshot?.following || snapshot?.following?.length === 0)) {
+        action = 'scanFollowing';
+      } else {
+        action = 'scanFollowers';
+      }
+    }
+    setLastScanType(action);
+
     try {
-      const res = await sendChromeMessage(MSG.START_SCAN);
-      if (res && res.error) {
+      const res = await sendChromeMessage(action);
+
+      if (res && (res.error || res.success === false)) {
         setScanning(false);
         setScanStatus(SCAN_STATUS.FAILED);
-        setError(res.error);
-      } else if (res && (res.snapshot || res.snapshotCreated)) {
+        setError(res.error || 'Scan could not be completed.');
+      } else if (res && (res.snapshot || res.snapshotCreated || res.success)) {
         setScanning(false);
         setScanStatus(SCAN_STATUS.COMPLETE);
         loadStoredSnapshot();
+      } else {
+        setScanning(false);
       }
     } catch (err) {
       setScanning(false);
       setScanStatus(SCAN_STATUS.FAILED);
-      setError(err.message || 'Could not start scan. Make sure you are on instagram.com.');
+      setError(err.message || 'Scan trigger failed. Make sure you are on instagram.com.');
     }
   }
 
@@ -146,43 +175,118 @@ export default function Popup() {
     }
   }
 
-  // Derive a readable detail string for the status badge.
   function getStatusDetail() {
-    if (!scanMeta) return '';
-    if (scanStatus === SCAN_STATUS.SCANNING) return 'Please wait…';
-    if (scanStatus === SCAN_STATUS.PARTIAL) {
-      return `${scanMeta.collectedCount} / ${scanMeta.reportedCount} collected`;
+    if (scanning) return 'Collecting accounts…';
+    if (scanMeta && scanStatus === SCAN_STATUS.PARTIAL) {
+      return `${(scanMeta.collectedCount ?? 0).toLocaleString()} / ${(scanMeta.reportedCount ?? 0).toLocaleString()} collected`;
     }
     return '';
   }
 
-  if (loading) return <Loading message="Loading snapshot…" />;
+  const filterCounts = classified ? {
+    all: (classified.notFollowingBack?.length || 0) + (classified.mutuals?.length || 0) + (classified.dontFollowBack?.length || 0),
+    notFollowingBack: classified.notFollowingBack?.length || 0,
+    mutuals: classified.mutuals?.length || 0,
+    dontFollowBack: classified.dontFollowBack?.length || 0
+  } : {};
+
+  const totalFollowers = snapshot?.totalFollowers ?? snapshot?.followers?.length ?? 0;
+  const totalFollowing = snapshot?.totalFollowing ?? snapshot?.following?.length ?? 0;
+  const hasData = Boolean(snapshot);
+  const isPartial = Boolean(snapshot?.isIncomplete || scanStatus === SCAN_STATUS.PARTIAL);
+
+  if (loading) {
+    return (
+      <div className="popup-canvas popup-loading-canvas">
+        <Loading message="Loading network observatory…" />
+      </div>
+    );
+  }
 
   return (
-    <div className="popup-root">
+    <div className="popup-canvas">
+      {/* 1. Header */}
       <Header
         account={snapshot?.observerUsername}
         onOpenDashboard={openDashboard}
       />
 
-      <div className="popup-body">
-        {error && <ErrorMessage message={error} onRetry={loadStoredSnapshot} />}
-
-        <ScanStatus status={scanStatus} detail={getStatusDetail()} />
-        <ScanButton scanning={scanning} onScan={handleScan} />
-
-        <Stats snapshot={snapshot} />
-        <RelationshipSummary summary={classified?.summary} />
-
-        {classified && (
-          <>
-            <SearchBar query={query} onChange={setQuery} />
-            <FilterBar active={filter} onFilter={setFilter} />
-            <UserList classified={classified} query={query} filter={filter} />
-          </>
+      <div className="popup-scroll-body">
+        {/* Error notification banner with retry action */}
+        {error && (
+          <div className="popup-error-banner" role="alert">
+            <div className="error-msg-row">
+              <span className="error-icon" aria-hidden="true">⚠</span>
+              <span className="error-text">{error}</span>
+            </div>
+            <button
+              className="error-retry-btn"
+              onClick={() => handleScan(lastScanType)}
+              type="button"
+            >
+              Retry
+            </button>
+          </div>
         )}
 
-        <DataQuality scanMeta={scanMeta} />
+        {/* 2. Main Scan Area */}
+        <section className="popup-section scan-hero-section">
+          <ScanStatus
+            status={scanStatus}
+            detail={getStatusDetail()}
+            lastScanTime={snapshot?.timestamp}
+          />
+
+          <ScanButton
+            scanning={scanning}
+            scanStatus={scanStatus}
+            hasData={hasData}
+            isPartial={isPartial}
+            hasError={Boolean(error || scanStatus === SCAN_STATUS.FAILED)}
+            onScan={handleScan}
+            followersCount={totalFollowers}
+            followingCount={totalFollowing}
+          />
+        </section>
+
+        {/* 3. Statistics (2×2 Grid) */}
+        <section className="popup-section stats-section">
+          <Stats
+            snapshot={snapshot}
+            activeFilter={filter}
+            onSelectFilter={(newFilter) => setFilter(newFilter)}
+          />
+        </section>
+
+        {/* 4. Relationship Overview */}
+        <section className="popup-section relationship-section">
+          <RelationshipSummary summary={classified?.summary} />
+        </section>
+
+        {/* 5. Audience Explorer / User List */}
+        {classified && (
+          <section className="popup-section audience-explorer-section">
+            <SearchBar query={query} onChange={setQuery} />
+            <FilterBar
+              active={filter}
+              onFilter={setFilter}
+              counts={filterCounts}
+            />
+            <UserList
+              classified={classified}
+              query={query}
+              filter={filter}
+              totalFollowing={totalFollowing}
+            />
+          </section>
+        )}
+
+        {/* 6. Data Quality */}
+        {scanMeta && (
+          <section className="popup-section quality-section">
+            <DataQuality scanMeta={scanMeta} />
+          </section>
+        )}
       </div>
     </div>
   );

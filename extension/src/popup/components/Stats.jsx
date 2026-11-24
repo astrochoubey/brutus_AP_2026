@@ -1,14 +1,8 @@
-// Stats.jsx — 2×2 grid of metric cards showing key follower statistics.
-//
-// Ponytail:
-//   Input: { followers: 500, following: 420, mutuals: 300, notFollowingBack: 120 }
-//   Output: four cards, each with a number and a label
-//
-// Rule: if snapshot is null or undefined, every card shows '—' instead of 0.
-// This prevents misleading zeros when no scan has been done yet.
+// Stats.jsx — 2×2 metric grid with perfectly aligned single-line labels and baseline numbers.
 
-export default function Stats({ snapshot }) {
-  // Helper: returns formatted number or dash when data is missing
+import { FILTER } from '../../utils/constants.js';
+
+export default function Stats({ snapshot, activeFilter, onSelectFilter }) {
   const val = (n) => (snapshot && n !== undefined && n !== null ? Number(n).toLocaleString() : '—');
 
   const totalFollowers = snapshot?.totalFollowers ?? snapshot?.stats?.followersCount ?? snapshot?.followers?.length;
@@ -25,19 +19,57 @@ export default function Stats({ snapshot }) {
   );
 
   const cards = [
-    { label: 'Followers',           value: val(totalFollowers) },
-    { label: 'Following',           value: val(totalFollowing) },
-    { label: 'Mutuals',             value: val(totalMutuals) },
-    { label: 'Not Following Back',  value: val(notFollowingBack) }
+    {
+      id: 'followers',
+      filter: FILTER.ALL,
+      label: 'Followers',
+      value: val(totalFollowers),
+      active: activeFilter === FILTER.ALL,
+      tag: 'Audience'
+    },
+    {
+      id: 'following',
+      filter: FILTER.NOT_FOLLOWING_BACK,
+      label: 'Following',
+      value: val(totalFollowing),
+      active: false,
+      tag: 'Network'
+    },
+    {
+      id: 'mutuals',
+      filter: FILTER.MUTUALS,
+      label: 'Mutuals',
+      value: val(totalMutuals),
+      active: activeFilter === FILTER.MUTUALS,
+      tag: 'Two-way'
+    },
+    {
+      id: 'notFollowingBack',
+      filter: FILTER.NOT_FOLLOWING_BACK,
+      label: 'Not Back',
+      value: val(notFollowingBack),
+      active: activeFilter === FILTER.NOT_FOLLOWING_BACK,
+      tag: 'One-way',
+      isAlert: !isIncomplete && notFollowingBack > 0
+    }
   ];
 
   return (
-    <div className="stats-grid">
+    <div className="stats-2x2-grid" role="region" aria-label="Key Relationship Metrics">
       {cards.map((card) => (
-        <div className="stat-card" key={card.label}>
-          <div className="stat-value">{card.value}</div>
-          <div className="stat-label">{card.label}</div>
-        </div>
+        <button
+          key={card.id}
+          type="button"
+          className={`stat-tile ${card.active ? 'is-active' : ''} ${card.isAlert ? 'is-alert' : ''}`}
+          onClick={() => onSelectFilter && onSelectFilter(card.filter)}
+          title={`Filter list by ${card.label}`}
+        >
+          <div className="stat-tile-top">
+            <span className="stat-tile-label">{card.label}</span>
+            <span className="stat-tile-tag">{card.tag}</span>
+          </div>
+          <div className="stat-tile-num">{card.value}</div>
+        </button>
       ))}
     </div>
   );

@@ -84,7 +84,7 @@ export async function handleScanRequest(message) {
             try {
               await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
-                files: ['src/content/followers.js', 'src/content/following.js'],
+                files: ['src/content/instagram.js'],
               });
               const retryRes = await sendToTab(2);
               return resolve(retryRes);
@@ -94,8 +94,13 @@ export async function handleScanRequest(message) {
             success: false,
             error: 'Please open your Instagram profile and make sure the Followers or Following dialog is open.',
           });
+        } else if (!res) {
+          resolve({
+            success: false,
+            error: 'Followers or Following dialog is not open. Please click "followers" or "following" on your Instagram profile first, then click Scan Now.',
+          });
         } else {
-          resolve(res || { success: true });
+          resolve(res);
         }
       });
     });
