@@ -1,11 +1,10 @@
-// RelationshipSummary.jsx — Compact visual reciprocity meter with segmented distribution.
-// Clean summary of Mutuals, Following Only, and Follower Only.
+// RelationshipSummary.jsx — Compact visual reciprocity breakdown with segmented bar.
 
 export default function RelationshipSummary({ summary }) {
   if (!summary) {
     return (
-      <div className="relationship-overview-card">
-        <div className="ro-empty-hint">Run a scan to analyze reciprocal connections.</div>
+      <div className="rel-card">
+        <div className="rel-empty-text">Run a scan to generate reciprocity and relationship analysis.</div>
       </div>
     );
   }
@@ -13,13 +12,13 @@ export default function RelationshipSummary({ summary }) {
   if (summary.isIncomplete) {
     const missing = summary.followersCount > 0 ? 'Following' : 'Followers';
     return (
-      <div className="relationship-overview-card incomplete">
-        <div className="ro-header-row">
-          <span className="ro-title">Relationship Overview</span>
-          <span className="ro-incomplete-badge">Incomplete</span>
+      <div className="rel-card is-incomplete">
+        <div className="rel-header-row">
+          <span className="rel-heading">RELATIONSHIP RECIPROCITY</span>
+          <span className="rel-tag-incomplete">INCOMPLETE</span>
         </div>
-        <p className="ro-guidance">
-          Scan your <strong>{missing}</strong> list to enable two-way reciprocity analysis.
+        <p className="rel-instruction">
+          Scan your <strong>{missing}</strong> list to enable complete mutual analysis.
         </p>
       </div>
     );
@@ -36,49 +35,49 @@ export default function RelationshipSummary({ summary }) {
   const followersOnlyPct = total > 0 ? (followersOnly / total) * 100 : 0;
 
   return (
-    <div className="relationship-overview-card">
-      <div className="ro-header-row">
-        <span className="ro-title">Relationship Overview</span>
-        <span className="ro-reciprocity-chip" title="Percentage of accounts you follow who follow you back">
-          {reciprocity}% Reciprocity
+    <div className="rel-card">
+      <div className="rel-header-row">
+        <span className="rel-heading">RELATIONSHIP RECIPROCITY</span>
+        <span className="rel-reciprocity-chip">
+          {reciprocity}% RECIPROCAL
         </span>
       </div>
 
       {/* Segmented Distribution Bar */}
-      <div className="ro-segmented-bar" aria-hidden="true">
+      <div className="rel-bar-track" aria-hidden="true">
         <div
-          className="seg-mutuals"
+          className="rel-bar-seg bar-mutuals"
           style={{ width: `${mutualsPct}%` }}
           title={`Mutuals: ${mutuals.toLocaleString()}`}
         />
         <div
-          className="seg-following-only"
+          className="rel-bar-seg bar-following-only"
           style={{ width: `${followingOnlyPct}%` }}
-          title={`Following Only: ${followingOnly.toLocaleString()}`}
+          title={`Not Following Back: ${followingOnly.toLocaleString()}`}
         />
         <div
-          className="seg-followers-only"
+          className="rel-bar-seg bar-followers-only"
           style={{ width: `${followersOnlyPct}%` }}
-          title={`Fans (Followers Only): ${followersOnly.toLocaleString()}`}
+          title={`Fans: ${followersOnly.toLocaleString()}`}
         />
       </div>
 
-      {/* Concise Breakdown Legends */}
-      <div className="ro-legend-row">
-        <div className="legend-item" title="Accounts that both follow you and you follow back">
-          <span className="legend-marker marker-mutuals" />
-          <span className="legend-label">Mutuals:</span>
-          <span className="legend-val">{mutuals.toLocaleString()}</span>
+      {/* Breakdown Legends */}
+      <div className="rel-legend-row">
+        <div className="legend-chip">
+          <span className="swatch swatch-mutuals" />
+          <span className="label">Mutuals:</span>
+          <span className="value">{mutuals.toLocaleString()}</span>
         </div>
-        <div className="legend-item" title="Accounts you follow who do not follow back">
-          <span className="legend-marker marker-following-only" />
-          <span className="legend-label">Following Only:</span>
-          <span className="legend-val">{followingOnly.toLocaleString()}</span>
+        <div className="legend-chip">
+          <span className="swatch swatch-following-only" />
+          <span className="label">Following Only:</span>
+          <span className="value">{followingOnly.toLocaleString()}</span>
         </div>
-        <div className="legend-item" title="Accounts following you whom you do not follow back">
-          <span className="legend-marker marker-followers-only" />
-          <span className="legend-label">Fans:</span>
-          <span className="legend-val">{followersOnly.toLocaleString()}</span>
+        <div className="legend-chip">
+          <span className="swatch swatch-followers-only" />
+          <span className="label">Fans:</span>
+          <span className="value">{followersOnly.toLocaleString()}</span>
         </div>
       </div>
     </div>

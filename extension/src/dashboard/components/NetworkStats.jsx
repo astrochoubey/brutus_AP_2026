@@ -85,7 +85,7 @@ export default function NetworkStats({ snapshot, prevSnapshot }) {
           {growthRate !== null && (
             <tr>
               <td>Follower Growth Delta</td>
-              <td className="table-val" style={{ color: growthRate >= 0 ? '#1f6b28' : '#b91c1c' }}>
+              <td className="table-val" style={{ color: growthRate >= 0 ? '#4ade80' : '#f87171' }}>
                 {growthRate > 0 ? `+${growthRate}%` : `${growthRate}%`}
               </td>
             </tr>

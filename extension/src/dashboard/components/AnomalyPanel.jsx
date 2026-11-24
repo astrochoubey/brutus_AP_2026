@@ -31,7 +31,7 @@ export default function AnomalyPanel({ anomaly }) {
       ) : (
         <div className="anomaly-card-report risk-none">
           <div className="anomaly-header">
-            <strong style={{ color: '#1f6b28' }}>✓ Network Health Verified</strong>
+            <strong style={{ color: '#4ade80' }}>✓ Network Health Verified</strong>
             <span className="risk-level-tag tag-healthy">Optimal</span>
           </div>
           <p className="anomaly-body-text">

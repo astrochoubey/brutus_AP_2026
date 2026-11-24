@@ -1,11 +1,11 @@
-// SearchBar.jsx — Integrated search input with search icon and instant clear button.
+// SearchBar.jsx — Dark search input with gold focus glow and clear button.
 
 export default function SearchBar({ query, onChange }) {
   return (
-    <div className="search-bar-wrap">
-      <div className="search-input-box">
+    <div className="search-wrap">
+      <div className="search-box">
         <svg
-          className="search-mag-icon"
+          className="search-icon"
           width="14"
           height="14"
           viewBox="0 0 24 24"
@@ -22,7 +22,7 @@ export default function SearchBar({ query, onChange }) {
 
         <input
           type="text"
-          className="search-input"
+          className="search-field"
           placeholder="Search accounts by handle or name…"
           value={query}
           onChange={(e) => onChange(e.target.value)}
@@ -33,9 +33,9 @@ export default function SearchBar({ query, onChange }) {
 
         {query && (
           <button
-            className="search-clear-btn"
+            className="search-clear"
             onClick={() => onChange('')}
-            title="Clear search text"
+            title="Clear search"
             type="button"
             aria-label="Clear search"
           >

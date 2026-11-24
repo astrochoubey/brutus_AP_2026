@@ -1,11 +1,11 @@
-// Dashboard.jsx — Apple-Grade full-page network observatory dashboard.
+// Dashboard.jsx — Portfolio-Grade full-page network observatory dashboard.
 //
 // Features:
 //   1. Persistent snapshot history retrieval and multi-snapshot delta analysis.
 //   2. Clean top navigation with observer branding and live account status.
 //   3. Structured analytical grid: Overview KPIs, Network Stats, Relationship Changes,
 //      Native SVG Network Graph, Historical Timeline, Scan History Table, Anomaly Panel.
-//   4. Responsive layout with balanced whitespace and strict 4-color palette tokens.
+//   4. Responsive layout with balanced whitespace and strict Portfolio design tokens.
 
 import { useState, useEffect } from 'react';
 import './dashboard.css';
@@ -107,12 +107,12 @@ export default function Dashboard() {
           <div className="dash-brand-cluster">
             <div className="dash-logo-mark" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="12" cy="12" r="10" />
-                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="var(--spring-meadow)" stroke="var(--teal-waters)" />
+                <circle cx="12" cy="12" r="10" stroke="#ffb71b" />
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#ffb71b" stroke="#050505" />
               </svg>
             </div>
             <div>
-              <div className="dash-title">Brutus</div>
+              <div className="dash-title">BRUTUS.</div>
               <div className="dash-tagline">Instagram Network Observatory</div>
             </div>
           </div>

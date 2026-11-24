@@ -1,13 +1,13 @@
-// ScanStatus.jsx — Refined scan status indicator with last successful scan time and live progress.
+// ScanStatus.jsx — Dark status strip with pulsing amber orb and relative timestamp.
 
 import { SCAN_STATUS } from '../../utils/constants.js';
 
-const STATUS_MAP = {
-  [SCAN_STATUS.IDLE]:     { dot: 'status-idle',     label: 'Ready to Scan',       badge: 'Idle' },
-  [SCAN_STATUS.SCANNING]: { dot: 'status-scanning', label: 'Collecting Network…', badge: 'Active' },
-  [SCAN_STATUS.COMPLETE]: { dot: 'status-complete', label: 'Network Synchronized',badge: 'Verified' },
-  [SCAN_STATUS.PARTIAL]:  { dot: 'status-partial',  label: 'Partial Data',        badge: 'Incomplete' },
-  [SCAN_STATUS.FAILED]:   { dot: 'status-failed',   label: 'Scan Interrupted',    badge: 'Error' },
+const STATUS_CONFIG = {
+  [SCAN_STATUS.IDLE]:     { dotClass: 'orb-idle',     label: 'READY TO SCAN' },
+  [SCAN_STATUS.SCANNING]: { dotClass: 'orb-scanning', label: 'COLLECTING DOM DATA…' },
+  [SCAN_STATUS.COMPLETE]: { dotClass: 'orb-complete', label: 'NETWORK SYNCHRONIZED' },
+  [SCAN_STATUS.PARTIAL]:  { dotClass: 'orb-partial',  label: 'PARTIAL SCAN' },
+  [SCAN_STATUS.FAILED]:   { dotClass: 'orb-failed',   label: 'SCAN INTERRUPTED' },
 };
 
 function formatRelativeTime(timestamp) {
@@ -28,21 +28,21 @@ export default function ScanStatus({
   detail = '',
   lastScanTime = null
 }) {
-  const cfg = STATUS_MAP[status] || STATUS_MAP[SCAN_STATUS.IDLE];
-  const formattedTime = formatRelativeTime(lastScanTime);
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG[SCAN_STATUS.IDLE];
+  const relativeTime = formatRelativeTime(lastScanTime);
 
   return (
-    <div className="scan-status-strip" role="status" aria-live="polite">
-      <div className="status-indicator-group">
-        <span className={`status-orb ${cfg.dot}`} aria-hidden="true" />
-        <span className="status-headline">{cfg.label}</span>
+    <div className="status-strip" role="status" aria-live="polite">
+      <div className="status-left">
+        <span className={`status-orb ${cfg.dotClass}`} aria-hidden="true" />
+        <span className="status-title">{cfg.label}</span>
       </div>
 
-      <div className="status-meta-group">
-        {detail && <span className="status-detail-chip">{detail}</span>}
-        {formattedTime && (
-          <span className="status-timestamp" title={new Date(lastScanTime).toLocaleString()}>
-            Updated {formattedTime}
+      <div className="status-right">
+        {detail && <span className="status-detail-tag">{detail}</span>}
+        {relativeTime && (
+          <span className="status-time" title={new Date(lastScanTime).toLocaleString()}>
+            {relativeTime}
           </span>
         )}
       </div>

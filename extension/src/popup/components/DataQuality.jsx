@@ -1,4 +1,4 @@
-// DataQuality.jsx — Scan integrity, confidence score, sample completeness, and partial warnings.
+// DataQuality.jsx — Scan data integrity and sample completeness card.
 
 export default function DataQuality({ scanMeta }) {
   if (!scanMeta) return null;
@@ -8,47 +8,47 @@ export default function DataQuality({ scanMeta }) {
   const isFailed  = scanMeta.status === 'FAILED';
 
   return (
-    <div className="data-quality-box" role="region" aria-label="Scan Data Quality">
-      <div className="dq-top-row">
-        <span className="dq-heading">Scan Integrity</span>
-        <span className="dq-confidence-pill">{pct}% Confidence</span>
+    <div className="quality-card" role="region" aria-label="Scan Data Quality">
+      <div className="quality-header">
+        <span className="quality-title">DATA INTEGRITY AUDIT</span>
+        <span className="quality-confidence-chip">{pct}% CONFIDENCE</span>
       </div>
 
-      <div className="dq-meter-track" aria-hidden="true">
+      <div className="quality-bar-track" aria-hidden="true">
         <div
-          className={`dq-meter-fill ${isPartial ? 'meter-partial' : 'meter-complete'}`}
+          className={`quality-bar-fill ${isPartial ? 'bar-partial' : 'bar-complete'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
 
-      <div className="dq-stat-row">
-        <div className="dq-stat-col">
-          <span className="dq-stat-sub">Reported</span>
-          <span className="dq-stat-val">{(scanMeta.reportedCount ?? 0).toLocaleString()}</span>
+      <div className="quality-metrics-row">
+        <div className="quality-metric">
+          <span className="q-label">REPORTED:</span>
+          <span className="q-val">{(scanMeta.reportedCount ?? 0).toLocaleString()}</span>
         </div>
-        <div className="dq-stat-col">
-          <span className="dq-stat-sub">Collected</span>
-          <span className="dq-stat-val">{(scanMeta.collectedCount ?? 0).toLocaleString()}</span>
+        <div className="quality-metric">
+          <span className="q-label">COLLECTED:</span>
+          <span className="q-val">{(scanMeta.collectedCount ?? 0).toLocaleString()}</span>
         </div>
         {scanMeta.errorCount > 0 && (
-          <div className="dq-stat-col">
-            <span className="dq-stat-sub">Anomalies</span>
-            <span className="dq-stat-val val-error">{scanMeta.errorCount}</span>
+          <div className="quality-metric">
+            <span className="q-label">ANOMALIES:</span>
+            <span className="q-val val-alert">{scanMeta.errorCount}</span>
           </div>
         )}
       </div>
 
       {isPartial && (
-        <div className="dq-alert dq-alert-partial">
-          <span className="dq-alert-icon" aria-hidden="true">⚠️</span>
-          <span>Partial scan detected. Results may be incomplete. Use <strong>Restart Scan</strong> to re-attempt full capture.</span>
+        <div className="quality-warning">
+          <span aria-hidden="true">⚠️</span>
+          <span>Incomplete sample. Use <strong>Restart Scan</strong> to run full extraction.</span>
         </div>
       )}
 
       {isFailed && (
-        <div className="dq-alert dq-alert-failed">
-          <span className="dq-alert-icon" aria-hidden="true">✕</span>
-          <span>Scan failed to complete. Your existing snapshot was preserved.</span>
+        <div className="quality-warning is-failed">
+          <span aria-hidden="true">✕</span>
+          <span>Scan failed to complete. Existing snapshot was preserved.</span>
         </div>
       )}
     </div>
