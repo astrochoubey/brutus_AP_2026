@@ -1,14 +1,13 @@
-// Stats.jsx — 2×2 grid of metric cards showing key follower statistics.
+// Stats.jsx — Interactive 2×2 grid of metric cards showing key relationship metrics.
 //
 // Ponytail:
-//   Input: { followers: 500, following: 420, mutuals: 300, notFollowingBack: 120 }
-//   Output: four cards, each with a number and a label
-//
-// Rule: if snapshot is null or undefined, every card shows '—' instead of 0.
-// This prevents misleading zeros when no scan has been done yet.
+//   Input: { snapshot, activeFilter, onSelectFilter }
+//   Output: four interactive metric cards that trigger corresponding user filters.
+//   Rule: if a metric is unavailable, show '—' instead of deceptive 0.
 
-export default function Stats({ snapshot }) {
-  // Helper: returns formatted number or dash when data is missing
+import { FILTER } from '../../utils/constants.js';
+
+export default function Stats({ snapshot, activeFilter, onSelectFilter }) {
   const val = (n) => (snapshot && n !== undefined && n !== null ? Number(n).toLocaleString() : '—');
 
   const totalFollowers = snapshot?.totalFollowers ?? snapshot?.stats?.followersCount ?? snapshot?.followers?.length;
@@ -25,19 +24,50 @@ export default function Stats({ snapshot }) {
   );
 
   const cards = [
-    { label: 'Followers',           value: val(totalFollowers) },
-    { label: 'Following',           value: val(totalFollowing) },
-    { label: 'Mutuals',             value: val(totalMutuals) },
-    { label: 'Not Following Back',  value: val(notFollowingBack) }
+    {
+      id: 'followers',
+      filter: FILTER.ALL,
+      label: 'Followers',
+      value: val(totalFollowers),
+      active: activeFilter === FILTER.ALL
+    },
+    {
+      id: 'following',
+      filter: FILTER.NOT_FOLLOWING_BACK,
+      label: 'Following',
+      value: val(totalFollowing),
+      active: false
+    },
+    {
+      id: 'mutuals',
+      filter: FILTER.MUTUALS,
+      label: 'Mutuals',
+      value: val(totalMutuals),
+      active: activeFilter === FILTER.MUTUALS
+    },
+    {
+      id: 'notFollowingBack',
+      filter: FILTER.NOT_FOLLOWING_BACK,
+      label: 'Not Following Back',
+      value: val(notFollowingBack),
+      active: activeFilter === FILTER.NOT_FOLLOWING_BACK,
+      highlight: true
+    }
   ];
 
   return (
     <div className="stats-grid">
       {cards.map((card) => (
-        <div className="stat-card" key={card.label}>
+        <button
+          key={card.id}
+          type="button"
+          className={`stat-card ${card.active ? 'active' : ''} ${card.highlight ? 'highlight-card' : ''}`}
+          onClick={() => onSelectFilter && onSelectFilter(card.filter)}
+          title={`Click to filter user list by ${card.label}`}
+        >
           <div className="stat-value">{card.value}</div>
           <div className="stat-label">{card.label}</div>
-        </div>
+        </button>
       ))}
     </div>
   );

@@ -54,10 +54,9 @@ export default defineConfig({
         // Service worker — Prachi's file.
         serviceWorker: resolve(__dirname, 'src/background/serviceWorker.js'),
 
-        // Content scripts — Kushagra's files.
-        instagram: resolve(__dirname, 'src/content/instagram.js'),
-        followers: resolve(__dirname, 'src/content/followers.js'),
-        following: resolve(__dirname, 'src/content/following.js')
+        // Unified Content script entry point for Instagram Web.
+        // Inlines followers and following logic into a single collision-free script.
+        instagram: resolve(__dirname, 'src/content/instagram.js')
       },
 
       output: {

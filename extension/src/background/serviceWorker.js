@@ -84,7 +84,7 @@ export async function handleScanRequest(message) {
             try {
               await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
-                files: ['src/content/followers.js', 'src/content/following.js'],
+                files: ['src/content/instagram.js'],
               });
               const retryRes = await sendToTab(2);
               return resolve(retryRes);

@@ -1,17 +1,18 @@
 /**
  * Brutus – Instagram Network Observatory
  * Feature: Instagram Following Collector
- * Owner:   Kushagra (@nottkushagra)
+ * Owner:   Kushagra (@nottkushagra) / Integrated by Priyanshu
  *
  * Collects accounts the user follows from an open Instagram Following dialog.
  * Triggered on-demand via Chrome runtime message: { type: 'scanFollowing' }
+ * Also auto-handles generic { type: 'scan' } / { type: 'startScan' } when Following dialog is open.
  *
  * Data flow:
  *   Instagram DOM  →  this content script  →  chrome.runtime.sendMessage
  *   →  Prachi's background service worker (serviceWorker.js)
  *
  * Agreed outbound message format:
- *   { type: 'followingData', following: ['user1', 'user2', …], source: 'content/following.js' }
+ *   { type: 'followingData', following: ['user1', 'user2', …], source: 'content/following.js', forceSnapshot: true }
  */
 
 // ─────────────────────────────────────────────────────────────────────
@@ -83,76 +84,81 @@ export function normalizeUsername(raw) {
  * @return {boolean} true when the host is instagram.com
  */
 export function isInstagramPage() {
+  if (typeof window === 'undefined') return false;
   const h = window.location.hostname;
   return h === 'www.instagram.com' || h === 'instagram.com';
 }
 
 /**
- * @return {boolean} true when the URL or dialog heading indicates the Following overlay is open
- */
-export function isFollowingDialogOpen() {
-  if (typeof window === 'undefined') return false;
-  const path = (window.location.pathname || '').toLowerCase();
-  const search = (window.location.search || '').toLowerCase();
-  if (path.includes('/following') || search.includes('following')) return true;
-
-  const dialog = document.querySelector('[role="dialog"]');
-  if (!dialog) return false;
-
-  // Check dialog title / headings
-  const headings = dialog.querySelectorAll('h1, h2, h3, [role="heading"]');
-  for (const h of headings) {
-    const text = (h.textContent || '').trim().toLowerCase();
-    if (text === 'following') return true;
-    if (text === 'followers') return false;
-  }
-
-  // Check direct title elements in header container
-  const headerElem = dialog.querySelector('header') || dialog.firstElementChild;
-  if (headerElem) {
-    const headerText = (headerElem.textContent || '').trim().toLowerCase();
-    if (headerText.startsWith('following')) return true;
-    if (headerText.startsWith('followers')) return false;
-  }
-
-  // Check tab element if tabbed modal
-  const activeTab = dialog.querySelector('[role="tab"][aria-selected="true"]');
-  if (activeTab) {
-    const tabText = (activeTab.textContent || '').trim().toLowerCase();
-    if (tabText.includes('following')) return true;
-    if (tabText.includes('follower')) return false;
-  }
-
-  return false;
-}
-
-/**
  * Locates the visible Following dialog in the DOM.
+ *
+ * Instagram DOM Strategy:
+ * 1. Locate all [role="dialog"] overlays that are currently visible.
+ * 2. In modern Instagram Web, header text ("Following") is often rendered inside
+ *    a simple <div> or <span> instead of an <h1>-<h3> or [role="heading"].
+ * 3. In the Following dialog, every followed row has an action button with text "Following".
+ *    In the Followers dialog, buttons say "Remove" or "Follow".
+ * 4. This makes button text + heading inspection 100% deterministic.
  *
  * @return {Element|null}
  */
 export function findFollowingDialog() {
   if (typeof document === 'undefined') return null;
+
   const dialogs = document.querySelectorAll('[role="dialog"]');
   for (const d of dialogs) {
-    if (d.offsetParent === null &&
-        getComputedStyle(d).position !== 'fixed') continue; // hidden
+    // Skip if hidden
+    if (d.offsetParent === null && getComputedStyle(d).position !== 'fixed') {
+      continue;
+    }
 
-    // Check headings to ensure it's not the Followers dialog
-    const headings = d.querySelectorAll('h1, h2, h3, [role="heading"]');
-    let isFollowers = false;
-    for (const h of headings) {
-      if ((h.textContent || '').trim().toLowerCase() === 'followers') {
-        isFollowers = true;
-        break;
+    // Check button texts in the dialog
+    const buttons = Array.from(d.querySelectorAll('button'));
+    const btnTexts = buttons.map((b) => (b.textContent || '').trim().toLowerCase());
+    const hasFollowingButton = btnTexts.some((t) => t === 'following');
+    const hasRemoveButton = btnTexts.some((t) => t === 'remove');
+
+    // If it has "Remove" buttons, it is the Followers dialog, not Following
+    if (hasRemoveButton && !hasFollowingButton) {
+      continue;
+    }
+
+    // Check title elements (spans, divs, headings with short text)
+    const titleCandidates = d.querySelectorAll('h1, h2, h3, [role="heading"], div, span');
+    let hasFollowingTitle = false;
+    let hasFollowersTitle = false;
+
+    for (const el of titleCandidates) {
+      // Check leaf or near-leaf elements to avoid matching full container text
+      if (el.children.length <= 1) {
+        const text = (el.textContent || '').trim().toLowerCase();
+        if (text === 'following') {
+          hasFollowingTitle = true;
+          break;
+        }
+        if (text === 'followers') {
+          hasFollowersTitle = true;
+        }
       }
     }
-    if (isFollowers) continue;
 
-    if (d.querySelectorAll('a[href^="/"]').length > 0) return d;
+    // If explicit "followers" title found and no "following" title, skip
+    if (hasFollowersTitle && !hasFollowingTitle) {
+      continue;
+    }
+
+    // Positive identification: explicit title OR action buttons in rows
+    if (hasFollowingTitle || hasFollowingButton) {
+      return d;
+    }
+
+    // Fallback: dialog has profile links and no "followers" indication
+    if (!hasFollowersTitle && d.querySelectorAll('a[href^="/"]').length > 0) {
+      return d;
+    }
   }
 
-  // Fallback overlay detection
+  // Fallback fixed-position overlay detection
   if (isFollowingDialogOpen()) {
     const overlays = document.querySelectorAll(
       'div[style*="position: fixed"], div[style*="overflow"]'
@@ -163,6 +169,38 @@ export function findFollowingDialog() {
   }
 
   return null;
+}
+
+/**
+ * @return {boolean} true when URL or dialog indicates Following overlay is open
+ */
+export function isFollowingDialogOpen() {
+  if (typeof window === 'undefined') return false;
+
+  const path = (window.location.pathname || '').toLowerCase();
+  const search = (window.location.search || '').toLowerCase();
+  if (path.includes('/following') || search.includes('following')) return true;
+
+  const dialog = document.querySelector('[role="dialog"]');
+  if (!dialog) return false;
+
+  // Check action buttons inside dialog
+  const buttons = Array.from(dialog.querySelectorAll('button'));
+  const btnTexts = buttons.map((b) => (b.textContent || '').trim().toLowerCase());
+  if (btnTexts.some((t) => t === 'following')) return true;
+  if (btnTexts.some((t) => t === 'remove')) return false;
+
+  // Check title candidates
+  const titleCandidates = dialog.querySelectorAll('h1, h2, h3, [role="heading"], div, span');
+  for (const el of titleCandidates) {
+    if (el.children.length <= 1) {
+      const text = (el.textContent || '').trim().toLowerCase();
+      if (text === 'following') return true;
+      if (text === 'followers') return false;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -270,9 +308,9 @@ export async function collectFollowing() {
              scrollAttempts: 0, elapsedSeconds: 0, partial: false, error: msg };
   }
 
-  const dialog = findFollowingDialog();
+  let dialog = findFollowingDialog();
   if (!dialog && !isFollowingDialogOpen()) {
-    const msg = 'Following dialog is not open. Open a profile and click "following" first.';
+    const msg = 'Following dialog is not open. Open your profile and click "following" first.';
     _err(msg);
     return { success: false, following: [], count: 0,
              scrollAttempts: 0, elapsedSeconds: 0, partial: false, error: msg };
@@ -372,8 +410,62 @@ async function sendFollowingToBackground(following) {
   try {
     const response = await chrome.runtime.sendMessage(message);
     _log('Following data sent to background.', response || '');
+    return response;
   } catch (err) {
     _warn('Background did not acknowledge:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Orchestrates Following collection with automatic profile link clicking if not open.
+ */
+export async function executeFollowingCollection() {
+  let dialog = findFollowingDialog();
+  let isOpen = isFollowingDialogOpen() || (dialog !== null);
+
+  if (!isOpen) {
+    // If Following dialog not open, find Following link on profile and click it
+    const followingLink = document.querySelector('a[href$="/following/"], a[href*="/following"]');
+    if (followingLink) {
+      _log('Following dialog not open. Clicking profile following link…');
+      followingLink.click();
+      await delay(1200);
+      dialog = findFollowingDialog();
+      isOpen = isFollowingDialogOpen() || (dialog !== null);
+    }
+  }
+
+  if (!isOpen) {
+    return {
+      success: false,
+      following: [],
+      count: 0,
+      scrollAttempts: 0,
+      elapsedSeconds: 0,
+      partial: false,
+      error: 'Following dialog is not open. Please click "following" on your Instagram profile to open the list, then click Scan Following.',
+    };
+  }
+
+  _log('Received scan trigger for following dialog.');
+  try {
+    const result = await collectFollowing();
+    if (result.success && result.following.length > 0) {
+      await sendFollowingToBackground(result.following);
+    }
+    return result;
+  } catch (err) {
+    _err('Following collection failed with exception:', err);
+    return {
+      success:        false,
+      following:      [],
+      count:          0,
+      scrollAttempts: 0,
+      elapsedSeconds: 0,
+      partial:        false,
+      error:          err.message || 'Unknown collection error',
+    };
   }
 }
 
@@ -383,37 +475,27 @@ async function sendFollowingToBackground(following) {
 
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message && (message.type === 'scanFollowing' || message.type === 'startScan' || message.type === 'scanFollowers' || message.type === 'scan')) {
-      const dialog = findFollowingDialog();
-      const isOpen = isFollowingDialogOpen() || (dialog !== null);
-      if (!isOpen) {
-        return false; // Not a following dialog, let followers.js handle it
-      }
+    if (!message) return false;
 
-      _log('Received scan trigger for following dialog.');
-
-      collectFollowing()
-        .then(async (result) => {
-          if (result.success && result.following.length > 0) {
-            await sendFollowingToBackground(result.following);
-          }
-          sendResponse(result);
-        })
-        .catch((err) => {
-          _err('Following collection failed with exception:', err);
-          sendResponse({
-            success:        false,
-            following:      [],
-            count:          0,
-            scrollAttempts: 0,
-            elapsedSeconds: 0,
-            partial:        false,
-            error:          err.message || 'Unknown collection error',
-          });
-        });
-
+    // 1. Explicit following scan request
+    if (message.type === 'scanFollowing') {
+      executeFollowingCollection().then(sendResponse);
       return true;
     }
+
+    // 2. Generic scan trigger: if Following dialog is open, handle it
+    if (message.type === 'startScan' || message.type === 'scan' || message.type === 'scanFollowers') {
+      const dialog = findFollowingDialog();
+      const isOpen = isFollowingDialogOpen() || (dialog !== null);
+      if (isOpen) {
+        _log('Detected active Following dialog for generic scan trigger.');
+        executeFollowingCollection().then(sendResponse);
+        return true;
+      }
+      return false; // Let followers.js handle it
+    }
+
+    return false;
   });
 
   _log('Following collector loaded. Send { type: "scanFollowing" } to begin.');

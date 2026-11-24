@@ -1,18 +1,11 @@
 // Popup.jsx — Root component for the Chrome extension popup.
 //
 // What it does:
-//   1. On mount, tries to load the current snapshot from chrome.storage.local.
-//   2. Classifies followers/following using classifyRelationships() from comparison.js.
-//   3. Renders Header, ScanStatus, Stats, RelationshipSummary, SearchBar, FilterBar,
-//      UserList, DataQuality — all with real data or proper empty/loading states.
-//   4. Scan button sends a START_SCAN message to the service worker.
-//
-// COLLABORATION:
-//   - Storage layer (Prachi): snapshots.js is a stub. We read chrome.storage.local directly
-//     using the agreed STORAGE_KEYS from constants.js. When Prachi's implementation lands,
-//     these keys will still work because they use the same storage.
-//   - Scan data (Kushagra): The snapshot shape we read matches NetworkSnapshot + ScanMetadata
-//     from types/models.js. When Kushagra's scanner writes data, it will be available here.
+//   1. On mount, loads the current snapshot from chrome.storage.local.
+//   2. Classifies relationships deterministically using classifyRelationships().
+//   3. Supports dedicated and contextual scanning for Followers and Following.
+//   4. Interactive metric cards that filter the user list on click.
+//   5. Search bar with instant filtering by handle or name.
 
 import { useState, useEffect } from 'react';
 import './popup.css';
@@ -43,6 +36,7 @@ export default function Popup() {
   const [scanning, setScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState(SCAN_STATUS.IDLE);
   const [scanMeta, setScanMeta] = useState(null);
+  const [lastScanType, setLastScanType] = useState('scanFollowers');
 
   // State: network data
   const [snapshot, setSnapshot] = useState(null);
@@ -62,13 +56,12 @@ export default function Popup() {
     if (typeof chrome === 'undefined' || !chrome.runtime) return;
 
     function handleMessage(msg) {
-      if (msg.action === MSG.SCAN_PROGRESS) {
+      if (msg.action === MSG.SCAN_PROGRESS || msg.type === 'SCAN_PROGRESS') {
         setScanStatus(SCAN_STATUS.SCANNING);
       }
-      if (msg.action === MSG.SCAN_COMPLETE) {
+      if (msg.action === MSG.SCAN_COMPLETE || msg.type === 'SCAN_COMPLETE') {
         setScanning(false);
         setScanStatus(msg.status || SCAN_STATUS.COMPLETE);
-        // Reload data after a completed scan.
         loadStoredSnapshot();
       }
     }
@@ -104,35 +97,42 @@ export default function Popup() {
   function applySnapshot(stored) {
     setSnapshot(stored);
 
-    // Scan metadata lives alongside the snapshot.
     if (stored.scanMeta) {
       setScanMeta(stored.scanMeta);
       setScanStatus(stored.scanMeta.status || SCAN_STATUS.COMPLETE);
+    } else {
+      setScanStatus(SCAN_STATUS.COMPLETE);
     }
 
-    // Classify using existing utility — no calculation duplicated here.
     const followers = stored.followers || [];
     const following = stored.following || [];
     const result = classifyRelationships(followers, following);
     setClassified(result);
   }
 
-  async function handleScan() {
+  async function handleScan(scanType) {
     setScanning(true);
     setScanStatus(SCAN_STATUS.SCANNING);
     setError(null);
 
+    // Determine target scan type if not specified
+    let targetType = scanType;
+    if (!targetType) {
+      if (snapshot?.followers?.length > 0 && (!snapshot?.following || snapshot?.following?.length === 0)) {
+        targetType = 'scanFollowing';
+      } else {
+        targetType = 'scanFollowers';
+      }
+    }
+    setLastScanType(targetType);
+
     try {
-      const res = await sendChromeMessage(MSG.START_SCAN);
+      const res = await sendChromeMessage(targetType);
       if (res && (res.error || res.success === false)) {
         setScanning(false);
         setScanStatus(SCAN_STATUS.FAILED);
-        setError(res.error || 'Scan could not be started.');
-      } else if (res && (res.snapshot || res.snapshotCreated)) {
-        setScanning(false);
-        setScanStatus(SCAN_STATUS.COMPLETE);
-        loadStoredSnapshot();
-      } else if (res && res.success && res.followers && res.followers.length > 0) {
+        setError(res.error || 'Scan could not be completed.');
+      } else if (res && (res.snapshot || res.snapshotCreated || res.success)) {
         setScanning(false);
         setScanStatus(SCAN_STATUS.COMPLETE);
         loadStoredSnapshot();
@@ -150,17 +150,27 @@ export default function Popup() {
     }
   }
 
-  // Derive a readable detail string for the status badge.
   function getStatusDetail() {
     if (!scanMeta) return '';
-    if (scanStatus === SCAN_STATUS.SCANNING) return 'Please wait…';
+    if (scanStatus === SCAN_STATUS.SCANNING) return 'Collecting accounts…';
     if (scanStatus === SCAN_STATUS.PARTIAL) {
       return `${scanMeta.collectedCount} / ${scanMeta.reportedCount} collected`;
     }
     return '';
   }
 
-  if (loading) return <Loading message="Loading snapshot…" />;
+  // Calculate counts for FilterBar badges
+  const filterCounts = classified ? {
+    all: (classified.notFollowingBack?.length || 0) + (classified.mutuals?.length || 0) + (classified.dontFollowBack?.length || 0),
+    notFollowingBack: classified.notFollowingBack?.length || 0,
+    mutuals: classified.mutuals?.length || 0,
+    dontFollowBack: classified.dontFollowBack?.length || 0
+  } : {};
+
+  const totalFollowersCount = snapshot?.followers?.length || snapshot?.stats?.followersCount || 0;
+  const totalFollowingCount = snapshot?.following?.length || snapshot?.stats?.followingCount || 0;
+
+  if (loading) return <Loading message="Loading network data…" />;
 
   return (
     <div className="popup-root">
@@ -170,33 +180,44 @@ export default function Popup() {
       />
 
       <div className="popup-body">
-        {error && <ErrorMessage message={error} onRetry={loadStoredSnapshot} />}
-
-        <ScanStatus status={scanStatus} detail={getStatusDetail()} />
-        <ScanButton scanning={scanning} onScan={handleScan} />
-
-        {!snapshot && (
-          <div style={{
-            fontSize: '0.78rem',
-            color: 'var(--teal-waters)',
-            background: 'var(--glacial-sky)',
-            padding: '8px 10px',
-            borderRadius: 'var(--radius)',
-            textAlign: 'center',
-            lineHeight: 1.4
-          }}>
-            💡 <strong>How to scan:</strong> Click <strong>followers</strong> or <strong>following</strong> on your Instagram profile to open the modal, then click <strong>Scan Now</strong>.
-          </div>
+        {error && (
+          <ErrorMessage
+            message={error}
+            onRetry={() => handleScan(lastScanType)}
+          />
         )}
 
-        <Stats snapshot={snapshot} />
+        <ScanStatus status={scanStatus} detail={getStatusDetail()} />
+
+        <ScanButton
+          scanning={scanning}
+          onScan={handleScan}
+          followersCount={totalFollowersCount}
+          followingCount={totalFollowingCount}
+        />
+
+        <Stats
+          snapshot={snapshot}
+          activeFilter={filter}
+          onSelectFilter={(selectedFilter) => setFilter(selectedFilter)}
+        />
+
         <RelationshipSummary summary={classified?.summary} />
 
         {classified && (
           <>
             <SearchBar query={query} onChange={setQuery} />
-            <FilterBar active={filter} onFilter={setFilter} />
-            <UserList classified={classified} query={query} filter={filter} />
+            <FilterBar
+              active={filter}
+              onFilter={setFilter}
+              counts={filterCounts}
+            />
+            <UserList
+              classified={classified}
+              query={query}
+              filter={filter}
+              totalFollowing={totalFollowingCount}
+            />
           </>
         )}
 
