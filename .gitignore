@@ -13,3 +13,8 @@ backend/.venv/
 # Environment / OS
 .DS_Store
 Thumbs.db
+
+# SQLite Databases
+*.sqlite
+*.sqlite-journal
+backend/database/*.sqlite
