@@ -14,8 +14,8 @@ export default function RelationshipSummary({ summary }) {
     return (
       <div className="rel-card is-incomplete">
         <div className="rel-header-row">
-          <span className="rel-heading">RELATIONSHIP RECIPROCITY</span>
-          <span className="rel-tag-incomplete">INCOMPLETE</span>
+          <span className="rel-heading">Relationship Reciprocity</span>
+          <span className="rel-tag-incomplete">Incomplete</span>
         </div>
         <p className="rel-instruction">
           Scan your <strong>{missing}</strong> list to enable complete mutual analysis.
@@ -37,9 +37,9 @@ export default function RelationshipSummary({ summary }) {
   return (
     <div className="rel-card">
       <div className="rel-header-row">
-        <span className="rel-heading">RELATIONSHIP RECIPROCITY</span>
+        <span className="rel-heading">Relationship Reciprocity</span>
         <span className="rel-reciprocity-chip">
-          {reciprocity}% RECIPROCAL
+          {reciprocity}% Reciprocal
         </span>
       </div>
 
@@ -71,7 +71,7 @@ export default function RelationshipSummary({ summary }) {
         </div>
         <div className="legend-chip">
           <span className="swatch swatch-following-only" />
-          <span className="label">Following Only:</span>
+          <span className="label">Following only:</span>
           <span className="value">{followingOnly.toLocaleString()}</span>
         </div>
         <div className="legend-chip">

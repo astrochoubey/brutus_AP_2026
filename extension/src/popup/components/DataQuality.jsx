@@ -10,8 +10,8 @@ export default function DataQuality({ scanMeta }) {
   return (
     <div className="quality-card" role="region" aria-label="Scan Data Quality">
       <div className="quality-header">
-        <span className="quality-title">DATA INTEGRITY AUDIT</span>
-        <span className="quality-confidence-chip">{pct}% CONFIDENCE</span>
+        <span className="quality-title">Data Integrity Audit</span>
+        <span className="quality-confidence-chip">{pct}% Confidence</span>
       </div>
 
       <div className="quality-bar-track" aria-hidden="true">
@@ -23,16 +23,16 @@ export default function DataQuality({ scanMeta }) {
 
       <div className="quality-metrics-row">
         <div className="quality-metric">
-          <span className="q-label">REPORTED:</span>
+          <span className="q-label">Reported:</span>
           <span className="q-val">{(scanMeta.reportedCount ?? 0).toLocaleString()}</span>
         </div>
         <div className="quality-metric">
-          <span className="q-label">COLLECTED:</span>
+          <span className="q-label">Collected:</span>
           <span className="q-val">{(scanMeta.collectedCount ?? 0).toLocaleString()}</span>
         </div>
         {scanMeta.errorCount > 0 && (
           <div className="quality-metric">
-            <span className="q-label">ANOMALIES:</span>
+            <span className="q-label">Anomalies:</span>
             <span className="q-val val-alert">{scanMeta.errorCount}</span>
           </div>
         )}

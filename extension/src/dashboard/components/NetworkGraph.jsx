@@ -1,22 +1,22 @@
 // NetworkGraph.jsx — Native SVG social graph visualization with concentric orbital rings.
 // Implemented strictly with standard SVG circles, lines, and text (no third-party chart libraries).
-// Styled using the portfolio design system palette (#050505 canvas, #ffb71b accent gold).
+// Clear Grey + Olive Design System.
 
 import { buildNetworkGraph } from '../../utils/graph.js';
 import EmptyState from '../../components/EmptyState.jsx';
 
 const NODE_FILL = {
-  observer:       '#ffb71b',
-  mutual:         '#ffb71b',
-  following_only: '#f87171',
-  follower_only:  '#38bdf8'
+  observer:       '#3d4f37', // Deep Olive
+  mutual:         '#587044', // Leaf Olive
+  following_only: '#b0523b', // Earthy Terracotta
+  follower_only:  '#4a6b68'  // Muted Sage Slate
 };
 
 const NODE_STROKE = {
   observer:       '#ffffff',
-  mutual:         '#050505',
-  following_only: '#050505',
-  follower_only:  '#050505'
+  mutual:         '#ffffff',
+  following_only: '#ffffff',
+  follower_only:  '#ffffff'
 };
 
 const MAX_DISPLAY_NODES = 60;
@@ -94,9 +94,9 @@ export default function NetworkGraph({ classified, observerUsername }) {
           aria-label="Instagram network social graph"
         >
           {/* Orbital guide rings */}
-          <circle cx={cx} cy={cy} r={R * 0.45} fill="none" stroke="rgba(255, 255, 255, 0.08)" strokeDasharray="3 3" />
-          <circle cx={cx} cy={cy} r={R * 0.75} fill="none" stroke="rgba(255, 255, 255, 0.06)" strokeDasharray="4 4" />
-          <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(255, 255, 255, 0.10)" strokeWidth="1" />
+          <circle cx={cx} cy={cy} r={R * 0.45} fill="none" stroke="#d8ded5" strokeDasharray="3 3" />
+          <circle cx={cx} cy={cy} r={R * 0.75} fill="none" stroke="#d8ded5" strokeDasharray="4 4" />
+          <circle cx={cx} cy={cy} r={R} fill="none" stroke="#d0d7cd" strokeWidth="1" />
 
           {/* Connection edge lines */}
           {visibleEdges.map((edge) => {
@@ -110,7 +110,7 @@ export default function NetworkGraph({ classified, observerUsername }) {
                 y1={p1.y}
                 x2={p2.x}
                 y2={p2.y}
-                stroke="rgba(255, 255, 255, 0.12)"
+                stroke="rgba(61, 79, 55, 0.18)"
                 strokeWidth="1.2"
               />
             );
@@ -120,8 +120,8 @@ export default function NetworkGraph({ classified, observerUsername }) {
           {others.map((node) => {
             const p = positions[node.id];
             if (!p) return null;
-            const fill = NODE_FILL[node.type] || '#ffb71b';
-            const stroke = NODE_STROKE[node.type] || '#050505';
+            const fill = NODE_FILL[node.type] || '#587044';
+            const stroke = NODE_STROKE[node.type] || '#ffffff';
 
             return (
               <g key={node.id} className="svg-node-group">
@@ -152,7 +152,7 @@ export default function NetworkGraph({ classified, observerUsername }) {
             x={cx}
             y={cy + 4}
             textAnchor="middle"
-            fill="#050505"
+            fill="#ffffff"
             fontSize="9"
             fontWeight="bold"
             fontFamily="var(--font-sans)"

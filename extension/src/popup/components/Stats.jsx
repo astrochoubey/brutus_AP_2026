@@ -1,4 +1,4 @@
-// Stats.jsx — Portfolio-styled 2×2 metric grid with high-contrast numbers and interactive filters.
+// Stats.jsx — 2×2 metric grid with clean typography and interactive filters.
 
 import { FILTER } from '../../utils/constants.js';
 
@@ -22,34 +22,34 @@ export default function Stats({ snapshot, activeFilter, onSelectFilter }) {
     {
       id: 'followers',
       filter: FILTER.ALL,
-      label: 'TOTAL FOLLOWERS',
+      label: 'Followers',
       value: val(totalFollowers),
       active: activeFilter === FILTER.ALL,
-      tag: 'AUDIENCE'
+      tag: 'Audience'
     },
     {
       id: 'following',
       filter: FILTER.NOT_FOLLOWING_BACK,
-      label: 'TOTAL FOLLOWING',
+      label: 'Following',
       value: val(totalFollowing),
       active: false,
-      tag: 'NETWORK'
+      tag: 'Network'
     },
     {
       id: 'mutuals',
       filter: FILTER.MUTUALS,
-      label: 'MUTUAL FOLLOWERS',
+      label: 'Mutuals',
       value: val(totalMutuals),
       active: activeFilter === FILTER.MUTUALS,
-      tag: 'TWO-WAY'
+      tag: 'Two-way'
     },
     {
       id: 'notFollowingBack',
       filter: FILTER.NOT_FOLLOWING_BACK,
-      label: 'NOT FOLLOWING BACK',
+      label: 'Not Following Back',
       value: val(notFollowingBack),
       active: activeFilter === FILTER.NOT_FOLLOWING_BACK,
-      tag: 'ONE-WAY',
+      tag: 'One-way',
       isAlert: !isIncomplete && notFollowingBack > 0
     }
   ];

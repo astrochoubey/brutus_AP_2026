@@ -1,71 +1,71 @@
-/* styles.css — Portfolio-Inspired Design System for Brutus.
-   Primary Source of Truth: Jashanpreet's Portfolio (https://my-portfolio-ecru-psi-aj9l2c6a8q.vercel.app/)
-
-   Extracted Palette Tokens:
-     Deep Dark Background:    #050505 (Main canvas)
-     Dark Surface:            #111111 (Card & container surfaces)
-     Elevated Surface:        #1a1a1a (Inputs, hover states, secondary pills)
-     High Surface:            #222222 (Badges, modal overlays)
-     Portfolio Accent:        #ffb71b (Vibrant warm gold / amber yellow)
-     Primary Text:            #ffffff (High-contrast headlines & numbers)
-     Secondary Text:          #99a1af (Slate gray labels & descriptions)
-     Muted Text:              #6a7282 (Captions & timestamps)
-     Subtle Borders:          rgba(255, 255, 255, 0.08)
-     Active Borders:          rgba(255, 183, 27, 0.4)
+/* styles.css — Clear Grey & Olive Design System for Brutus.
+   Human-crafted, calm, editorial aesthetic.
+   Clear, bright surfaces with refined earthy olive accents.
 */
 
 :root {
-  /* Portfolio Core Color Tokens */
-  --bg-primary:          #050505;
-  --bg-surface:          #111111;
-  --bg-surface-elev:     #161616;
-  --bg-surface-card:     #111111;
-  --bg-surface-high:     #222222;
+  /* Canvas & Surfaces (Clear Warm Grey + Crisp White) */
+  --bg-canvas:           #f4f5f2;
+  --bg-surface:          #ffffff;
+  --bg-surface-elev:     #fafbfa;
+  --bg-surface-subtle:   #edf0eb;
+  --bg-surface-muted:    #e5eae2;
 
-  --accent-gold:         #ffb71b;
-  --accent-gold-subtle:  rgba(255, 183, 27, 0.15);
-  --accent-gold-glow:    rgba(255, 183, 27, 0.35);
+  /* Olive System */
+  --olive-deep:          #243022; /* Primary text, deep branding */
+  --olive-main:          #3d4f37; /* Primary button, key accents */
+  --olive-hover:         #31402c; /* Button hover state */
+  --olive-light:         #e8ede5; /* Active pill & card backgrounds */
+  --olive-border:        #c2cdbd; /* Olive boundary lines */
 
-  --text-primary:        #ffffff;
-  --text-secondary:      #99a1af;
-  --text-muted:          #6a7282;
-  --text-inverse:        #050505;
+  /* Earthy Category Accents (Natural, Non-AI) */
+  --cat-mutual-bg:       #e8ede5;
+  --cat-mutual-text:     #34442f;
+  --cat-mutual-border:   #c2cdbd;
 
-  --border-subtle:       rgba(255, 255, 255, 0.08);
-  --border-default:      rgba(255, 255, 255, 0.14);
-  --border-gold:         rgba(255, 183, 27, 0.4);
+  --cat-notback-bg:      #faeee9;
+  --cat-notback-text:    #9c452e;
+  --cat-notback-border:  #e5c4ba;
 
-  /* Category Accents (Portfolio-Harmonized) */
-  --cat-mutual:          #ffb71b;
-  --cat-not-back:        #f87171;
-  --cat-fan:             #38bdf8;
+  --cat-fan-bg:          #edf2f1;
+  --cat-fan-text:        #385654;
+  --cat-fan-border:      #c3d3d1;
 
-  /* Backward Compatibility Aliases */
-  --spring-meadow:       #ffb71b;
-  --teal-waters:         #111111;
-  --glacial-sky:         rgba(255, 255, 255, 0.12);
-  --morning-mist:        #050505;
+  /* Typography Colors */
+  --text-primary:        #1e241c; /* Sharp, high-contrast dark olive-charcoal */
+  --text-secondary:      #576154; /* Readable warm grey */
+  --text-muted:          #7b8578; /* Micro copy, captions, timestamps */
+  --text-inverse:        #ffffff; /* White text for olive buttons */
 
-  /* Typography Stacks (Zero External Library Dependencies) */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Geist', 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Structural Borders */
+  --border-subtle:       #e2e6df;
+  --border-default:      #d3d8ce;
+  --border-focus:        #3d4f37;
 
-  /* Geometry & Radius (Matching Portfolio's [0.75rem], [1.2rem], [2rem], rounded-full) */
-  --radius-xs:   4px;
-  --radius-sm:   8px;
-  --radius:      12px;
-  --radius-lg:   16px;
-  --radius-full: 9999px;
+  /* Elevation & Shadows */
+  --shadow-xs:           0 1px 2px rgba(36, 48, 34, 0.04);
+  --shadow-sm:           0 1px 3px rgba(36, 48, 34, 0.06), 0 1px 2px rgba(36, 48, 34, 0.03);
+  --shadow-card:         0 2px 6px rgba(36, 48, 34, 0.05), 0 1px 2px rgba(36, 48, 34, 0.03);
+  --shadow-elevated:     0 6px 16px rgba(36, 48, 34, 0.08);
 
-  /* Shadows */
-  --shadow-gold: 0 0 20px rgba(255, 183, 27, 0.25);
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.45);
+  /* Geometry */
+  --radius-xs:           4px;
+  --radius-sm:           6px;
+  --radius:              10px;
+  --radius-lg:           14px;
+  --radius-full:         9999px;
 
-  /* Spacing */
-  --gap-xs: 4px;
-  --gap-sm: 8px;
-  --gap:    12px;
-  --gap-lg: 20px;
+  /* Typography Stacks */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Backward Compatibility Tokens */
+  --bg-primary:          var(--bg-canvas);
+  --accent-gold:         var(--olive-main);
+  --spring-meadow:       var(--olive-main);
+  --teal-waters:         var(--olive-deep);
+  --glacial-sky:         var(--border-subtle);
+  --morning-mist:        var(--bg-canvas);
 }
 
 /* Base Resets */
@@ -77,18 +77,17 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--bg-primary);
+  background-color: var(--bg-canvas);
   color: var(--text-primary);
-  line-height: 1.45;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-sans);
   color: var(--text-primary);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 button {
@@ -101,18 +100,18 @@ button {
 }
 
 button:focus-visible, input:focus-visible {
-  outline: 2px solid var(--accent-gold);
+  outline: 2px solid var(--olive-main);
   outline-offset: 1px;
 }
 
 a {
-  color: var(--accent-gold);
+  color: var(--olive-main);
   text-decoration: none;
-  transition: opacity 0.15s ease;
+  font-weight: 500;
 }
 
 a:hover {
-  opacity: 0.85;
+  text-decoration: underline;
 }
 
 /* Shared Reusable Components */
@@ -121,42 +120,44 @@ a:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px;
+  padding: 32px 20px;
   text-align: center;
   background: var(--bg-surface-elev);
-  border: 1px dashed var(--border-subtle);
+  border: 1px dashed var(--border-default);
   border-radius: var(--radius);
   color: var(--text-secondary);
 }
 
 .empty-title {
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.90rem;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .empty-desc {
-  font-size: 0.78rem;
+  font-size: 0.80rem;
   color: var(--text-secondary);
-  max-width: 380px;
-  line-height: 1.4;
+  max-width: 400px;
+  line-height: 1.45;
 }
 
+/* Centered Loading Component */
 .loading-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 16px;
-  gap: 16px;
+  padding: 48px 24px;
+  gap: 14px;
+  text-align: center;
 }
 
 .loading-spinner {
-  width: 34px;
-  height: 34px;
-  border: 3px solid rgba(255, 183, 27, 0.15);
-  border-top-color: var(--accent-gold);
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(61, 79, 55, 0.15);
+  border-top-color: var(--olive-main);
   border-radius: 50%;
   animation: brutus-spin 0.8s linear infinite;
 }
@@ -167,16 +168,16 @@ a:hover {
 
 .loading-text {
   font-size: 0.84rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
-  letter-spacing: 0.02em;
 }
 
+/* Error Alert Box */
 .error-box {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: #faeee9;
+  border: 1px solid #e5c4ba;
   border-radius: var(--radius);
-  padding: 14px 18px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -185,22 +186,22 @@ a:hover {
 
 .error-text {
   font-size: 0.82rem;
-  color: #f87171;
+  color: #9c452e;
   font-weight: 500;
 }
 
 .btn-secondary {
-  background: var(--bg-surface-elev);
+  background: var(--bg-surface);
   color: var(--text-primary);
   border: 1px solid var(--border-default);
   padding: 6px 14px;
   border-radius: var(--radius-sm);
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   font-weight: 600;
   transition: all 0.15s ease;
 }
 
 .btn-secondary:hover {
-  background: var(--bg-surface-high);
-  border-color: var(--accent-gold);
+  background: var(--bg-surface-subtle);
+  border-color: var(--olive-border);
 }

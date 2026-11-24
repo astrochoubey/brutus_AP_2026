@@ -1,11 +1,5 @@
 // Popup.jsx — Root coordinator for the Brutus Chrome extension popup.
-//
-// Features:
-//   1. Persistent local snapshot loading without mutating or erasing prior valid scans.
-//   2. Deterministic set-theory relationship classification (classifyRelationships).
-//   3. Full 5-state Restart Scan implementation with duplicate click prevention.
-//   4. Interactive 2x2 metric filtering, instant handle search, and live audience Explorer.
-//   5. Data quality integrity auditing and partial-scan alerting.
+// Clear Grey + Olive Design System with resilient snapshot loading.
 
 import { useState, useEffect } from 'react';
 import './popup.css';
@@ -69,28 +63,50 @@ export default function Popup() {
     return () => chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
   }, []);
 
-  function loadStoredSnapshot() {
+  async function loadStoredSnapshot() {
     setLoading(true);
     setError(null);
 
-    if (typeof chrome === 'undefined' || !chrome.storage) {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
       setLoading(false);
       setError('Extension storage is unavailable in this environment.');
       return;
     }
 
-    chrome.storage.local.get(
-      [STORAGE_KEYS.CURRENT_SNAPSHOT],
-      (result) => {
-        const stored = result[STORAGE_KEYS.CURRENT_SNAPSHOT];
-        if (stored) {
-          applySnapshot(stored);
-        } else {
-          setScanStatus(SCAN_STATUS.IDLE);
+    try {
+      const storagePromise = new Promise((resolve) => {
+        try {
+          const ret = chrome.storage.local.get([STORAGE_KEYS.CURRENT_SNAPSHOT], (result) => {
+            if (chrome.runtime?.lastError) {
+              console.warn('Popup storage read warning:', chrome.runtime.lastError.message);
+              resolve({});
+            } else {
+              resolve(result || {});
+            }
+          });
+          if (ret && typeof ret.then === 'function') {
+            ret.then(resolve).catch(() => resolve({}));
+          }
+        } catch (e) {
+          console.warn('Popup storage access threw:', e);
+          resolve({});
         }
-        setLoading(false);
+      });
+
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({}), 2000));
+      const result = (await Promise.race([storagePromise, timeoutPromise])) || {};
+      const stored = result[STORAGE_KEYS.CURRENT_SNAPSHOT];
+
+      if (stored) {
+        applySnapshot(stored);
+      } else {
+        setScanStatus(SCAN_STATUS.IDLE);
       }
-    );
+    } catch (err) {
+      console.error('loadStoredSnapshot error:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function applySnapshot(stored) {
@@ -105,21 +121,23 @@ export default function Popup() {
       setScanStatus(SCAN_STATUS.COMPLETE);
     }
 
-    const followers = stored.followers || [];
-    const following = stored.following || [];
-    const classification = classifyRelationships(followers, following);
-    setClassified(classification);
+    const followers = Array.isArray(stored.followers) ? stored.followers : [];
+    const following = Array.isArray(stored.following) ? stored.following : [];
+    try {
+      const classification = classifyRelationships(followers, following);
+      setClassified(classification);
+    } catch (e) {
+      console.warn('Classification error:', e);
+    }
   }
 
   async function handleScan(targetType) {
-    // Prevent duplicate triggers
     if (scanning) return;
 
     setScanning(true);
     setScanStatus(SCAN_STATUS.SCANNING);
     setError(null);
 
-    // Auto-resolve target action if unspecified
     let action = targetType;
     if (!action) {
       if (snapshot?.followers?.length > 0 && (!snapshot?.following || snapshot?.following?.length === 0)) {
@@ -165,7 +183,6 @@ export default function Popup() {
     return '';
   }
 
-  // Calculate live counts for FilterBar pills
   const filterCounts = classified ? {
     all: (classified.notFollowingBack?.length || 0) + (classified.mutuals?.length || 0) + (classified.dontFollowBack?.length || 0),
     notFollowingBack: classified.notFollowingBack?.length || 0,
@@ -178,7 +195,13 @@ export default function Popup() {
   const hasData = Boolean(snapshot);
   const isPartial = Boolean(snapshot?.isIncomplete || scanStatus === SCAN_STATUS.PARTIAL);
 
-  if (loading) return <Loading message="Loading network observatory…" />;
+  if (loading) {
+    return (
+      <div className="popup-canvas popup-loading-canvas">
+        <Loading message="Loading network observatory…" />
+      </div>
+    );
+  }
 
   return (
     <div className="popup-canvas">
@@ -193,7 +216,7 @@ export default function Popup() {
         {error && (
           <div className="popup-error-banner" role="alert">
             <div className="error-msg-row">
-              <span className="error-icon" aria-hidden="true">⚠️</span>
+              <span className="error-icon" aria-hidden="true">⚠</span>
               <span className="error-text">{error}</span>
             </div>
             <button

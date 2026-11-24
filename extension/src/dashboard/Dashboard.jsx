@@ -1,11 +1,5 @@
-// Dashboard.jsx — Portfolio-Grade full-page network observatory dashboard.
-//
-// Features:
-//   1. Persistent snapshot history retrieval and multi-snapshot delta analysis.
-//   2. Clean top navigation with observer branding and live account status.
-//   3. Structured analytical grid: Overview KPIs, Network Stats, Relationship Changes,
-//      Native SVG Network Graph, Historical Timeline, Scan History Table, Anomaly Panel.
-//   4. Responsive layout with balanced whitespace and strict Portfolio design tokens.
+// Dashboard.jsx — Full-Page Network Observatory Dashboard.
+// Clear Grey + Olive Design System with robust asynchronous data retrieval.
 
 import { useState, useEffect } from 'react';
 import './dashboard.css';
@@ -38,51 +32,85 @@ export default function Dashboard() {
     loadData();
   }, []);
 
-  function loadData() {
+  async function loadData() {
     setLoading(true);
     setError(null);
 
-    if (typeof chrome === 'undefined' || !chrome.storage) {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
       setLoading(false);
-      setError('Extension storage not available. Load inside Chrome extension.');
+      setError('Extension storage is unavailable in this environment.');
       return;
     }
 
-    chrome.storage.local.get(
-      [STORAGE_KEYS.CURRENT_SNAPSHOT, STORAGE_KEYS.SCAN_HISTORY, STORAGE_KEYS.SNAPSHOTS],
-      (result) => {
-        const stored  = result[STORAGE_KEYS.CURRENT_SNAPSHOT];
-        const history = result[STORAGE_KEYS.SCAN_HISTORY] || result[STORAGE_KEYS.SNAPSHOTS] || [];
+    try {
+      const keys = [
+        STORAGE_KEYS.CURRENT_SNAPSHOT,
+        STORAGE_KEYS.SCAN_HISTORY,
+        STORAGE_KEYS.SNAPSHOTS
+      ];
 
-        setScanHistory(history);
+      // Safely fetch from chrome.storage.local with race timeout
+      const storagePromise = new Promise((resolve) => {
+        try {
+          const ret = chrome.storage.local.get(keys, (res) => {
+            if (chrome.runtime?.lastError) {
+              console.warn('Storage read warning:', chrome.runtime.lastError.message);
+              resolve({});
+            } else {
+              resolve(res || {});
+            }
+          });
+          // In Manifest V3 if chrome.storage.local.get returns a promise:
+          if (ret && typeof ret.then === 'function') {
+            ret.then(resolve).catch(() => resolve({}));
+          }
+        } catch (e) {
+          console.warn('chrome.storage.local.get threw:', e);
+          resolve({});
+        }
+      });
 
-        if (stored) {
-          setSnapshot(stored);
+      // 3-second safety timeout guarantees the dashboard will never hang
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({}), 3000));
+      const result = (await Promise.race([storagePromise, timeoutPromise])) || {};
 
-          // Find the previous valid snapshot in history
+      const stored = result[STORAGE_KEYS.CURRENT_SNAPSHOT] || null;
+      const historyRaw = result[STORAGE_KEYS.SCAN_HISTORY] || result[STORAGE_KEYS.SNAPSHOTS] || [];
+      const history = Array.isArray(historyRaw) ? historyRaw : [];
+
+      setScanHistory(history);
+
+      if (stored) {
+        setSnapshot(stored);
+
+        if (history.length >= 2) {
           const sorted = [...history].sort(
-            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+            (a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)
           );
-          if (sorted.length >= 2) {
-            setPrevSnapshot(sorted[1]);
-          }
-
-          // Classify relationships deterministically
-          const resultClassified = classifyRelationships(
-            stored.followers || [],
-            stored.following || []
-          );
-          setClassified(resultClassified);
-
-          // Fetch anomaly report if snapshot ID is present
-          if (stored.snapshotId) {
-            fetchAnomaly(stored.snapshotId);
-          }
+          setPrevSnapshot(sorted[1]);
         }
 
-        setLoading(false);
+        try {
+          const resultClassified = classifyRelationships(
+            Array.isArray(stored.followers) ? stored.followers : [],
+            Array.isArray(stored.following) ? stored.following : []
+          );
+          setClassified(resultClassified);
+        } catch (err) {
+          console.warn('classifyRelationships warning:', err);
+        }
+
+        if (stored.snapshotId) {
+          fetchAnomaly(stored.snapshotId);
+        }
       }
-    );
+    } catch (err) {
+      console.error('Dashboard loadData caught error:', err);
+      setError('Failed to load snapshot records from extension storage.');
+    } finally {
+      // Guaranteed completion: loading screen will always dismiss cleanly
+      setLoading(false);
+    }
   }
 
   async function fetchAnomaly(snapshotId) {
@@ -97,7 +125,13 @@ export default function Dashboard() {
     }
   }
 
-  if (loading) return <Loading message="Loading network dashboard…" />;
+  if (loading) {
+    return (
+      <div className="dash-canvas dash-loading-screen">
+        <Loading message="Loading network dashboard…" />
+      </div>
+    );
+  }
 
   return (
     <div className="dash-canvas">
@@ -106,13 +140,13 @@ export default function Dashboard() {
         <div className="dash-nav-container">
           <div className="dash-brand-cluster">
             <div className="dash-logo-mark" aria-hidden="true">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="12" cy="12" r="10" stroke="#ffb71b" />
-                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#ffb71b" stroke="#050505" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <circle cx="12" cy="12" r="10" stroke="var(--olive-main)" />
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="var(--olive-main)" stroke="var(--olive-main)" />
               </svg>
             </div>
             <div>
-              <div className="dash-title">BRUTUS.</div>
+              <div className="dash-title">Brutus</div>
               <div className="dash-tagline">Instagram Network Observatory</div>
             </div>
           </div>

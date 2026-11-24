@@ -1,13 +1,13 @@
-// ScanStatus.jsx — Dark status strip with pulsing amber orb and relative timestamp.
+// ScanStatus.jsx — Status strip with indicator dot and relative timestamp.
 
 import { SCAN_STATUS } from '../../utils/constants.js';
 
 const STATUS_CONFIG = {
-  [SCAN_STATUS.IDLE]:     { dotClass: 'orb-idle',     label: 'READY TO SCAN' },
-  [SCAN_STATUS.SCANNING]: { dotClass: 'orb-scanning', label: 'COLLECTING DOM DATA…' },
-  [SCAN_STATUS.COMPLETE]: { dotClass: 'orb-complete', label: 'NETWORK SYNCHRONIZED' },
-  [SCAN_STATUS.PARTIAL]:  { dotClass: 'orb-partial',  label: 'PARTIAL SCAN' },
-  [SCAN_STATUS.FAILED]:   { dotClass: 'orb-failed',   label: 'SCAN INTERRUPTED' },
+  [SCAN_STATUS.IDLE]:     { dotClass: 'orb-idle',     label: 'Ready to scan' },
+  [SCAN_STATUS.SCANNING]: { dotClass: 'orb-scanning', label: 'Collecting accounts…' },
+  [SCAN_STATUS.COMPLETE]: { dotClass: 'orb-complete', label: 'Network synchronized' },
+  [SCAN_STATUS.PARTIAL]:  { dotClass: 'orb-partial',  label: 'Partial scan' },
+  [SCAN_STATUS.FAILED]:   { dotClass: 'orb-failed',   label: 'Scan interrupted' },
 };
 
 function formatRelativeTime(timestamp) {
