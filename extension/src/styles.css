@@ -1,34 +1,51 @@
-/* styles.css — Global theme variables and reset for Brutus.
-
-   Design system — four colours only:
-     Spring Meadow  #CAFFA6  — main accent
-     Teal Waters    #204654  — primary text, dark surfaces
-     Glacial Sky    #A9E0F1  — secondary backgrounds
-     Morning Mist   #F7F9E1  — main background
+/* styles.css — Global theme tokens, typography, and base resets for Brutus.
+   Strict 4-Color Palette:
+     Spring Meadow: #CAFFA6  — High-contrast primary accents, active highlights, success
+     Teal Waters:   #204654  — Deep contrast brand identity, text, headers, dark surfaces
+     Glacial Sky:   #A9E0F1  — Crisp card borders, secondary surfaces, muted fills
+     Morning Mist:  #F7F9E1  — Neutral background canvas, visual breathing space
 */
 
-/* ---- CSS Variables ---- */
 :root {
+  /* Core Palette Tokens — NEVER CHANGE */
   --spring-meadow: #CAFFA6;
-  --teal-waters: #204654;
-  --glacial-sky: #A9E0F1;
-  --morning-mist: #F7F9E1;
+  --teal-waters:   #204654;
+  --glacial-sky:   #A9E0F1;
+  --morning-mist:  #F7F9E1;
 
-  /* Derived shades — still within the palette */
-  --teal-light: #2d5f70;
-  --meadow-dark: #9fd97e;
+  /* Derived Surface & Interaction Shades */
+  --teal-dark:     #16323d;
+  --teal-light:    #2a5a6b;
+  --sky-subtle:    rgba(169, 224, 241, 0.25);
+  --sky-border:    rgba(32, 70, 84, 0.14);
+  --meadow-dark:   #9bd878;
+  --meadow-subtle: rgba(202, 255, 166, 0.22);
 
-  /* Typography */
-  --font-serif: Georgia, 'Times New Roman', serif;
-  --font-sans: system-ui, -apple-system, sans-serif;
+  /* Typography Stacks (Zero External Font Dependencies) */
+  --font-serif: Georgia, Cambria, 'Times New Roman', serif;
+  --font-sans:  -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:  ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Elevation & Borders */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius:    10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  /* Shadows (Restrained, Apple-like) */
+  --shadow-sm: 0 1px 2px rgba(32, 70, 84, 0.06);
+  --shadow-md: 0 3px 8px rgba(32, 70, 84, 0.08);
+  --shadow-lg: 0 8px 20px rgba(32, 70, 84, 0.12);
 
   /* Spacing */
-  --radius: 10px;
-  --gap: 12px;
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap:    12px;
   --gap-lg: 20px;
 }
 
-/* ---- Reset ---- */
+/* Base Resets */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -39,25 +56,37 @@ body {
   font-family: var(--font-sans);
   background-color: var(--morning-mist);
   color: var(--teal-waters);
-  line-height: 1.5;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4 {
   font-family: var(--font-serif);
   color: var(--teal-waters);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 button {
   cursor: pointer;
   font-family: var(--font-sans);
+  border: none;
+  background: none;
+  outline: none;
+}
+
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--teal-waters);
+  outline-offset: 1px;
 }
 
 a {
   color: var(--teal-waters);
   text-decoration: none;
+  transition: opacity 0.15s ease;
 }
 
 a:hover {
-  text-decoration: underline;
+  opacity: 0.8;
 }

@@ -1,11 +1,11 @@
-// Popup.jsx — Root component for the Chrome extension popup.
+// Popup.jsx — Root coordinator for the Brutus Chrome extension popup.
 //
-// What it does:
-//   1. On mount, loads the current snapshot from chrome.storage.local.
-//   2. Classifies relationships deterministically using classifyRelationships().
-//   3. Supports dedicated and contextual scanning for Followers and Following.
-//   4. Interactive metric cards that filter the user list on click.
-//   5. Search bar with instant filtering by handle or name.
+// Features:
+//   1. Persistent local snapshot loading without mutating or erasing prior valid scans.
+//   2. Deterministic set-theory relationship classification (classifyRelationships).
+//   3. Full 5-state Restart Scan implementation with duplicate click prevention.
+//   4. Interactive 2x2 metric filtering, instant handle search, and live audience Explorer.
+//   5. Data quality integrity auditing and partial-scan alerting.
 
 import { useState, useEffect } from 'react';
 import './popup.css';
@@ -20,7 +20,6 @@ import FilterBar from './components/FilterBar.jsx';
 import UserList from './components/UserList.jsx';
 import DataQuality from './components/DataQuality.jsx';
 import Loading from '../components/Loading.jsx';
-import ErrorMessage from '../components/ErrorMessage.jsx';
 
 import { classifyRelationships } from '../utils/comparison.js';
 import { STORAGE_KEYS, SCAN_STATUS, FILTER } from '../utils/constants.js';
@@ -28,34 +27,34 @@ import { sendChromeMessage } from '../messaging/sendMessage.js';
 import { MSG } from '../messaging/messageTypes.js';
 
 export default function Popup() {
-  // State: data loading
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // State: Loading & Error
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(null);
 
-  // State: scan control
-  const [scanning, setScanning] = useState(false);
-  const [scanStatus, setScanStatus] = useState(SCAN_STATUS.IDLE);
-  const [scanMeta, setScanMeta] = useState(null);
+  // State: Scan Orchestration & Metadata
+  const [scanning, setScanning]       = useState(false);
+  const [scanStatus, setScanStatus]   = useState(SCAN_STATUS.IDLE);
+  const [scanMeta, setScanMeta]       = useState(null);
   const [lastScanType, setLastScanType] = useState('scanFollowers');
 
-  // State: network data
-  const [snapshot, setSnapshot] = useState(null);
-  const [classified, setClassified] = useState(null);
+  // State: Network Datasets
+  const [snapshot, setSnapshot]       = useState(null);
+  const [classified, setClassified]   = useState(null);
 
-  // State: list controls
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState(FILTER.ALL);
+  // State: Audience Explorer Controls
+  const [query, setQuery]             = useState('');
+  const [filter, setFilter]           = useState(FILTER.ALL);
 
-  // Load stored snapshot when popup opens.
+  // Load stored snapshot on initial popup mount
   useEffect(() => {
     loadStoredSnapshot();
   }, []);
 
-  // Listen for messages from the service worker while the popup is open.
+  // Listen for background service worker progress and completion broadcasts
   useEffect(() => {
     if (typeof chrome === 'undefined' || !chrome.runtime) return;
 
-    function handleMessage(msg) {
+    function handleRuntimeMessage(msg) {
       if (msg.action === MSG.SCAN_PROGRESS || msg.type === 'SCAN_PROGRESS') {
         setScanStatus(SCAN_STATUS.SCANNING);
       }
@@ -66,18 +65,17 @@ export default function Popup() {
       }
     }
 
-    chrome.runtime.onMessage.addListener(handleMessage);
-    return () => chrome.runtime.onMessage.removeListener(handleMessage);
+    chrome.runtime.onMessage.addListener(handleRuntimeMessage);
+    return () => chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
   }, []);
 
   function loadStoredSnapshot() {
     setLoading(true);
     setError(null);
 
-    // Guard: chrome.storage is only available inside the extension.
     if (typeof chrome === 'undefined' || !chrome.storage) {
       setLoading(false);
-      setError('Extension storage not available. Load this inside Chrome.');
+      setError('Extension storage is unavailable in this environment.');
       return;
     }
 
@@ -87,47 +85,54 @@ export default function Popup() {
         const stored = result[STORAGE_KEYS.CURRENT_SNAPSHOT];
         if (stored) {
           applySnapshot(stored);
+        } else {
+          setScanStatus(SCAN_STATUS.IDLE);
         }
         setLoading(false);
       }
     );
   }
 
-  // Takes a stored snapshot object and derives classified relationships from it.
   function applySnapshot(stored) {
     setSnapshot(stored);
 
     if (stored.scanMeta) {
       setScanMeta(stored.scanMeta);
       setScanStatus(stored.scanMeta.status || SCAN_STATUS.COMPLETE);
+    } else if (stored.isIncomplete) {
+      setScanStatus(SCAN_STATUS.PARTIAL);
     } else {
       setScanStatus(SCAN_STATUS.COMPLETE);
     }
 
     const followers = stored.followers || [];
     const following = stored.following || [];
-    const result = classifyRelationships(followers, following);
-    setClassified(result);
+    const classification = classifyRelationships(followers, following);
+    setClassified(classification);
   }
 
-  async function handleScan(scanType) {
+  async function handleScan(targetType) {
+    // Prevent duplicate triggers
+    if (scanning) return;
+
     setScanning(true);
     setScanStatus(SCAN_STATUS.SCANNING);
     setError(null);
 
-    // Determine target scan type if not specified
-    let targetType = scanType;
-    if (!targetType) {
+    // Auto-resolve target action if unspecified
+    let action = targetType;
+    if (!action) {
       if (snapshot?.followers?.length > 0 && (!snapshot?.following || snapshot?.following?.length === 0)) {
-        targetType = 'scanFollowing';
+        action = 'scanFollowing';
       } else {
-        targetType = 'scanFollowers';
+        action = 'scanFollowers';
       }
     }
-    setLastScanType(targetType);
+    setLastScanType(action);
 
     try {
-      const res = await sendChromeMessage(targetType);
+      const res = await sendChromeMessage(action);
+
       if (res && (res.error || res.success === false)) {
         setScanning(false);
         setScanStatus(SCAN_STATUS.FAILED);
@@ -136,11 +141,13 @@ export default function Popup() {
         setScanning(false);
         setScanStatus(SCAN_STATUS.COMPLETE);
         loadStoredSnapshot();
+      } else {
+        setScanning(false);
       }
     } catch (err) {
       setScanning(false);
       setScanStatus(SCAN_STATUS.FAILED);
-      setError(err.message || 'Could not start scan. Make sure you are on instagram.com.');
+      setError(err.message || 'Scan trigger failed. Make sure you are on instagram.com.');
     }
   }
 
@@ -151,15 +158,14 @@ export default function Popup() {
   }
 
   function getStatusDetail() {
-    if (!scanMeta) return '';
-    if (scanStatus === SCAN_STATUS.SCANNING) return 'Collecting accounts…';
-    if (scanStatus === SCAN_STATUS.PARTIAL) {
-      return `${scanMeta.collectedCount} / ${scanMeta.reportedCount} collected`;
+    if (scanning) return 'Collecting accounts…';
+    if (scanMeta && scanStatus === SCAN_STATUS.PARTIAL) {
+      return `${(scanMeta.collectedCount ?? 0).toLocaleString()} / ${(scanMeta.reportedCount ?? 0).toLocaleString()} collected`;
     }
     return '';
   }
 
-  // Calculate counts for FilterBar badges
+  // Calculate live counts for FilterBar pills
   const filterCounts = classified ? {
     all: (classified.notFollowingBack?.length || 0) + (classified.mutuals?.length || 0) + (classified.dontFollowBack?.length || 0),
     notFollowingBack: classified.notFollowingBack?.length || 0,
@@ -167,45 +173,76 @@ export default function Popup() {
     dontFollowBack: classified.dontFollowBack?.length || 0
   } : {};
 
-  const totalFollowersCount = snapshot?.followers?.length || snapshot?.stats?.followersCount || 0;
-  const totalFollowingCount = snapshot?.following?.length || snapshot?.stats?.followingCount || 0;
+  const totalFollowers = snapshot?.totalFollowers ?? snapshot?.followers?.length ?? 0;
+  const totalFollowing = snapshot?.totalFollowing ?? snapshot?.following?.length ?? 0;
+  const hasData = Boolean(snapshot);
+  const isPartial = Boolean(snapshot?.isIncomplete || scanStatus === SCAN_STATUS.PARTIAL);
 
-  if (loading) return <Loading message="Loading network data…" />;
+  if (loading) return <Loading message="Loading network observatory…" />;
 
   return (
-    <div className="popup-root">
+    <div className="popup-canvas">
+      {/* 1. Header */}
       <Header
         account={snapshot?.observerUsername}
         onOpenDashboard={openDashboard}
       />
 
-      <div className="popup-body">
+      <div className="popup-scroll-body">
+        {/* Error notification banner with retry action */}
         {error && (
-          <ErrorMessage
-            message={error}
-            onRetry={() => handleScan(lastScanType)}
-          />
+          <div className="popup-error-banner" role="alert">
+            <div className="error-msg-row">
+              <span className="error-icon" aria-hidden="true">⚠️</span>
+              <span className="error-text">{error}</span>
+            </div>
+            <button
+              className="error-retry-btn"
+              onClick={() => handleScan(lastScanType)}
+              type="button"
+            >
+              Retry
+            </button>
+          </div>
         )}
 
-        <ScanStatus status={scanStatus} detail={getStatusDetail()} />
+        {/* 2. Main Scan Area */}
+        <section className="popup-section scan-hero-section">
+          <ScanStatus
+            status={scanStatus}
+            detail={getStatusDetail()}
+            lastScanTime={snapshot?.timestamp}
+          />
 
-        <ScanButton
-          scanning={scanning}
-          onScan={handleScan}
-          followersCount={totalFollowersCount}
-          followingCount={totalFollowingCount}
-        />
+          <ScanButton
+            scanning={scanning}
+            scanStatus={scanStatus}
+            hasData={hasData}
+            isPartial={isPartial}
+            hasError={Boolean(error || scanStatus === SCAN_STATUS.FAILED)}
+            onScan={handleScan}
+            followersCount={totalFollowers}
+            followingCount={totalFollowing}
+          />
+        </section>
 
-        <Stats
-          snapshot={snapshot}
-          activeFilter={filter}
-          onSelectFilter={(selectedFilter) => setFilter(selectedFilter)}
-        />
+        {/* 3. Statistics (2×2 Grid) */}
+        <section className="popup-section stats-section">
+          <Stats
+            snapshot={snapshot}
+            activeFilter={filter}
+            onSelectFilter={(newFilter) => setFilter(newFilter)}
+          />
+        </section>
 
-        <RelationshipSummary summary={classified?.summary} />
+        {/* 4. Relationship Overview */}
+        <section className="popup-section relationship-section">
+          <RelationshipSummary summary={classified?.summary} />
+        </section>
 
+        {/* 5. Audience Explorer / User List */}
         {classified && (
-          <>
+          <section className="popup-section audience-explorer-section">
             <SearchBar query={query} onChange={setQuery} />
             <FilterBar
               active={filter}
@@ -216,12 +253,17 @@ export default function Popup() {
               classified={classified}
               query={query}
               filter={filter}
-              totalFollowing={totalFollowingCount}
+              totalFollowing={totalFollowing}
             />
-          </>
+          </section>
         )}
 
-        <DataQuality scanMeta={scanMeta} />
+        {/* 6. Data Quality */}
+        {scanMeta && (
+          <section className="popup-section quality-section">
+            <DataQuality scanMeta={scanMeta} />
+          </section>
+        )}
       </div>
     </div>
   );

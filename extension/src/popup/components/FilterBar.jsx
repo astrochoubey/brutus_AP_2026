@@ -1,5 +1,4 @@
-// FilterBar.jsx — Toggle buttons for relationship category filtering.
-// Includes live count badges for each category.
+// FilterBar.jsx — Tactile category filter pills with live counts.
 
 import { FILTER } from '../../utils/constants.js';
 
@@ -12,20 +11,27 @@ export default function FilterBar({ active, onFilter, counts = {} }) {
   ];
 
   return (
-    <div className="filter-bar">
-      {FILTERS.map((f) => (
-        <button
-          key={f.value}
-          type="button"
-          className={`filter-btn ${active === f.value ? 'active' : ''}`}
-          onClick={() => onFilter(f.value)}
-        >
-          {f.label}
-          {f.count !== undefined && f.count !== null && (
-            <span className="filter-count"> ({Number(f.count).toLocaleString()})</span>
-          )}
-        </button>
-      ))}
+    <div className="filter-pill-bar" role="tablist" aria-label="Audience category filters">
+      {FILTERS.map((f) => {
+        const isActive = active === f.value;
+        return (
+          <button
+            key={f.value}
+            role="tab"
+            aria-selected={isActive}
+            type="button"
+            className={`filter-pill-btn ${isActive ? 'active-pill' : ''}`}
+            onClick={() => onFilter(f.value)}
+          >
+            <span>{f.label}</span>
+            {f.count !== undefined && f.count !== null && (
+              <span className="filter-badge">
+                {Number(f.count).toLocaleString()}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

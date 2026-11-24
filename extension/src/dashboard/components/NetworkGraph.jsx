@@ -1,49 +1,39 @@
-// NetworkGraph.jsx — Native SVG social graph visualization.
-//
-// Uses buildNetworkGraph() from graph.js to get nodes and edges.
-// No third-party graph library — just plain SVG circles and lines.
-//
-// Ponytail:
-//   Input: classified = { mutuals: [...], notFollowingBack: [...], dontFollowBack: [...] }
-//   buildNetworkGraph() returns { nodes: [...], edges: [...] }
-//   We place the observer at center, other nodes in a circle around it.
-//   Edge lines connect them. Colour indicates relationship type.
-//
-// Cap: render at most 60 nodes total so the SVG stays readable.
+// NetworkGraph.jsx — Native SVG social graph visualization with concentric orbital rings.
+// Implemented strictly with standard SVG circles, lines, and text (no third-party chart libraries).
 
 import { buildNetworkGraph } from '../../utils/graph.js';
 import EmptyState from '../../components/EmptyState.jsx';
 
-const NODE_COLOR = {
-  observer:      '#204654',
-  mutual:        '#CAFFA6',
-  following_only:'#A9E0F1',
-  follower_only: '#fff3cd'
+const NODE_FILL = {
+  observer:       '#204654',
+  mutual:         '#CAFFA6',
+  following_only: '#A9E0F1',
+  follower_only:  '#fef08a'
 };
 
 const NODE_STROKE = {
-  observer:      '#204654',
-  mutual:        '#204654',
-  following_only:'#204654',
-  follower_only: '#856404'
+  observer:       '#CAFFA6',
+  mutual:         '#204654',
+  following_only: '#204654',
+  follower_only:  '#854d0e'
 };
 
-const MAX_NODES = 60;
+const MAX_DISPLAY_NODES = 60;
 
 export default function NetworkGraph({ classified, observerUsername }) {
   if (!classified) {
     return (
-      <div className="dash-card">
-        <h2 className="dash-card-title">Network Graph</h2>
-        <EmptyState title="No data" description="Run a scan to generate your network graph." />
+      <div className="dash-subcard">
+        <h3 className="dash-card-title">Network Graph Topology</h3>
+        <EmptyState title="No graph data" description="Complete a scan to render the social network topology." />
       </div>
     );
   }
 
-  // Cap each category so the total stays manageable.
-  const mutuals    = (classified.mutuals || []).slice(0, 20);
-  const following  = (classified.notFollowingBack || []).slice(0, 20);
-  const followers  = (classified.dontFollowBack || []).slice(0, 20);
+  // Cap slices so nodes stay visually balanced
+  const mutuals   = (classified.mutuals || []).slice(0, 20);
+  const following = (classified.notFollowingBack || []).slice(0, 20);
+  const followers = (classified.dontFollowBack || []).slice(0, 20);
 
   const { nodes, edges } = buildNetworkGraph(
     observerUsername || 'You',
@@ -52,13 +42,15 @@ export default function NetworkGraph({ classified, observerUsername }) {
     followers
   );
 
-  // Cap total visible nodes.
-  const visibleNodes = nodes.slice(0, MAX_NODES);
+  const visibleNodes = nodes.slice(0, MAX_DISPLAY_NODES);
   const visibleIds   = new Set(visibleNodes.map((n) => n.id));
 
-  // Layout: observer at center, others in a circle.
-  const W = 540, H = 400;
-  const cx = W / 2, cy = H / 2, R = 160;
+  // Canvas geometry
+  const W = 640;
+  const H = 420;
+  const cx = W / 2;
+  const cy = H / 2;
+  const R = 155;
 
   const others = visibleNodes.filter((n) => n.id !== 'observer');
   const angleStep = others.length > 0 ? (2 * Math.PI) / others.length : 0;
@@ -76,83 +68,117 @@ export default function NetworkGraph({ classified, observerUsername }) {
     (e) => visibleIds.has(e.source) && visibleIds.has(e.target)
   );
 
-  const totalNodes = nodes.length - 1; // exclude observer
-  const capped = totalNodes > MAX_NODES - 1;
+  const totalConnections = nodes.length - 1;
 
   return (
-    <div className="dash-card">
-      <h2 className="dash-card-title">Network Graph</h2>
-      {capped && (
-        <p style={{ fontSize: '0.78rem', color: '#888', marginBottom: 10 }}>
-          Showing first {MAX_NODES - 1} of {totalNodes} connections for clarity.
-        </p>
-      )}
+    <div className="dash-subcard">
+      <div className="dash-card-header-row">
+        <div>
+          <h3 className="dash-card-title">Social Graph Topology</h3>
+          <span className="dash-subheading">
+            Orbital relationship representation centered around your account
+          </span>
+        </div>
+        {totalConnections > MAX_DISPLAY_NODES - 1 && (
+          <span className="dash-badge-count">
+            Sampled {MAX_DISPLAY_NODES - 1} of {totalConnections.toLocaleString()}
+          </span>
+        )}
+      </div>
 
-      <div className="network-graph-wrap">
-        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto' }}>
-          {/* Draw edges first so they appear behind nodes */}
+      <div className="svg-canvas-wrapper">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="network-svg-element"
+          aria-label="Instagram network social graph"
+        >
+          {/* Orbital guide rings */}
+          <circle cx={cx} cy={cy} r={R * 0.45} fill="none" stroke="rgba(169, 224, 241, 0.4)" strokeDasharray="3 3" />
+          <circle cx={cx} cy={cy} r={R * 0.75} fill="none" stroke="rgba(169, 224, 241, 0.3)" strokeDasharray="4 4" />
+          <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(169, 224, 241, 0.5)" strokeWidth="1" />
+
+          {/* Connection edge lines */}
           {visibleEdges.map((edge) => {
-            const src = positions[edge.source];
-            const tgt = positions[edge.target];
-            if (!src || !tgt) return null;
+            const p1 = positions[edge.source];
+            const p2 = positions[edge.target];
+            if (!p1 || !p2) return null;
             return (
               <line
                 key={edge.id}
-                x1={src.x} y1={src.y}
-                x2={tgt.x} y2={tgt.y}
-                stroke="#A9E0F1"
-                strokeWidth={1.5}
-                strokeOpacity={0.7}
+                x1={p1.x}
+                y1={p1.y}
+                x2={p2.x}
+                y2={p2.y}
+                stroke="rgba(32, 70, 84, 0.16)"
+                strokeWidth="1.2"
               />
             );
           })}
 
-          {/* Draw nodes */}
-          {visibleNodes.map((node) => {
-            const pos = positions[node.id];
-            if (!pos) return null;
-            const fill   = NODE_COLOR[node.type]   || '#ccc';
-            const stroke = NODE_STROKE[node.type]  || '#888';
-            const r = node.size || 10;
+          {/* Peripheral nodes */}
+          {others.map((node) => {
+            const p = positions[node.id];
+            if (!p) return null;
+            const fill = NODE_FILL[node.type] || '#A9E0F1';
+            const stroke = NODE_STROKE[node.type] || '#204654';
+
             return (
-              <g key={node.id}>
+              <g key={node.id} className="svg-node-group">
                 <circle
-                  cx={pos.x} cy={pos.y}
-                  r={r}
+                  cx={p.x}
+                  cy={p.y}
+                  r="7"
                   fill={fill}
                   stroke={stroke}
-                  strokeWidth={1.5}
-                />
-                {/* Show label only for observer and a small font for others */}
-                <text
-                  x={pos.x}
-                  y={pos.y + r + 10}
-                  textAnchor="middle"
-                  fontSize={node.type === 'observer' ? 11 : 9}
-                  fill="#204654"
-                  style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  strokeWidth="1.5"
                 >
-                  {node.label.length > 10 ? node.label.slice(0, 10) + '…' : node.label}
-                </text>
+                  <title>{`@${node.label} (${node.type.replace('_', ' ')})`}</title>
+                </circle>
               </g>
             );
           })}
+
+          {/* Center Observer Node */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r="16"
+            fill={NODE_FILL.observer}
+            stroke={NODE_STROKE.observer}
+            strokeWidth="3"
+          />
+          <text
+            x={cx}
+            y={cy + 4}
+            textAnchor="middle"
+            fill="#CAFFA6"
+            fontSize="9"
+            fontWeight="bold"
+            fontFamily="var(--font-sans)"
+          >
+            YOU
+          </text>
         </svg>
       </div>
 
-      {/* Legend */}
-      <div className="graph-legend">
-        {[
-          { color: NODE_COLOR.observer,      label: 'You' },
-          { color: NODE_COLOR.mutual,        label: 'Mutual' },
-          { color: NODE_COLOR.following_only,label: 'Not Following Back' },
-          { color: NODE_COLOR.follower_only, label: "Don't Follow Back" }
-        ].map((l) => (
-          <span key={l.label}>
-            <span className="legend-dot" style={{ background: l.color }} />
-            {l.label}
-          </span>
-        ))}
+      {/* Graph Legend */}
+      <div className="graph-legend-strip">
+        <div className="legend-entry">
+          <span className="legend-swatch" style={{ background: NODE_FILL.observer, border: `2px solid ${NODE_STROKE.observer}` }} />
+          <span>Observer (You)</span>
+        </div>
+        <div className="legend-entry">
+          <span className="legend-swatch" style={{ background: NODE_FILL.mutual, border: `1.5px solid ${NODE_STROKE.mutual}` }} />
+          <span>Mutual Connection</span>
+        </div>
+        <div className="legend-entry">
+          <span className="legend-swatch" style={{ background: NODE_FILL.following_only, border: `1.5px solid ${NODE_STROKE.following_only}` }} />
+          <span>Following Only (Not Back)</span>
+        </div>
+        <div className="legend-entry">
+          <span className="legend-swatch" style={{ background: NODE_FILL.follower_only, border: `1.5px solid ${NODE_STROKE.follower_only}` }} />
+          <span>Fan (Follower Only)</span>
+        </div>
       </div>
     </div>
   );

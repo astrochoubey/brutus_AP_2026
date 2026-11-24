@@ -1,16 +1,11 @@
-// Dashboard.jsx — Root component for the full-page analytics dashboard.
+// Dashboard.jsx — Apple-Grade full-page network observatory dashboard.
 //
-// What it does:
-//   1. On mount, loads current snapshot and scan history from chrome.storage.local.
-//   2. Classifies the latest snapshot's followers/following.
-//   3. Renders all dashboard sections: Overview, NetworkStats, RelationshipChanges,
-//      Timeline, ScanHistory, NetworkGraph, AnomalyPanel.
-//   4. Each section handles its own empty/loading state gracefully.
-//
-// COLLABORATION:
-//   - Storage (Prachi): reads chrome.storage.local using STORAGE_KEYS.
-//   - Scan data (Kushagra): expects snapshot shape from types/models.js.
-//   - Backend (Priyanshu): optionally calls /api/v1/analytics/anomalies/:snapshot_id.
+// Features:
+//   1. Persistent snapshot history retrieval and multi-snapshot delta analysis.
+//   2. Clean top navigation with observer branding and live account status.
+//   3. Structured analytical grid: Overview KPIs, Network Stats, Relationship Changes,
+//      Native SVG Network Graph, Historical Timeline, Scan History Table, Anomaly Panel.
+//   4. Responsive layout with balanced whitespace and strict 4-color palette tokens.
 
 import { useState, useEffect } from 'react';
 import './dashboard.css';
@@ -28,17 +23,16 @@ import ErrorMessage from '../components/ErrorMessage.jsx';
 import { classifyRelationships } from '../utils/comparison.js';
 import { STORAGE_KEYS } from '../utils/constants.js';
 
-// Optional: backend URL. If the backend is not running, anomaly data will be null.
 const BACKEND = 'http://localhost:8000/api/v1';
 
 export default function Dashboard() {
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(null);
-  const [snapshot, setSnapshot]       = useState(null);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [snapshot, setSnapshot]         = useState(null);
   const [prevSnapshot, setPrevSnapshot] = useState(null);
-  const [scanHistory, setScanHistory] = useState([]);
-  const [classified, setClassified]   = useState(null);
-  const [anomaly, setAnomaly]         = useState(null);
+  const [scanHistory, setScanHistory]   = useState([]);
+  const [classified, setClassified]     = useState(null);
+  const [anomaly, setAnomaly]           = useState(null);
 
   useEffect(() => {
     loadData();
@@ -55,17 +49,17 @@ export default function Dashboard() {
     }
 
     chrome.storage.local.get(
-      [STORAGE_KEYS.CURRENT_SNAPSHOT, STORAGE_KEYS.SCAN_HISTORY],
+      [STORAGE_KEYS.CURRENT_SNAPSHOT, STORAGE_KEYS.SCAN_HISTORY, STORAGE_KEYS.SNAPSHOTS],
       (result) => {
         const stored  = result[STORAGE_KEYS.CURRENT_SNAPSHOT];
-        const history = result[STORAGE_KEYS.SCAN_HISTORY] || [];
+        const history = result[STORAGE_KEYS.SCAN_HISTORY] || result[STORAGE_KEYS.SNAPSHOTS] || [];
 
         setScanHistory(history);
 
         if (stored) {
           setSnapshot(stored);
 
-          // The second-most-recent snapshot from history is the "previous" one.
+          // Find the previous valid snapshot in history
           const sorted = [...history].sort(
             (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
           );
@@ -73,14 +67,14 @@ export default function Dashboard() {
             setPrevSnapshot(sorted[1]);
           }
 
-          // Classify relationships.
-          const result = classifyRelationships(
+          // Classify relationships deterministically
+          const resultClassified = classifyRelationships(
             stored.followers || [],
             stored.following || []
           );
-          setClassified(result);
+          setClassified(resultClassified);
 
-          // Try to fetch anomaly report from the backend.
+          // Fetch anomaly report if snapshot ID is present
           if (stored.snapshotId) {
             fetchAnomaly(stored.snapshotId);
           }
@@ -91,7 +85,6 @@ export default function Dashboard() {
     );
   }
 
-  // Optional backend call — if it fails, we simply don't show anomaly data.
   async function fetchAnomaly(snapshotId) {
     try {
       const res = await fetch(`${BACKEND}/analytics/anomalies/${snapshotId}`);
@@ -100,46 +93,95 @@ export default function Dashboard() {
         setAnomaly(data);
       }
     } catch {
-      // Backend not running — anomaly panel will show its empty state.
+      // Backend not running — anomaly panel will show its clean empty state.
     }
   }
 
-  if (loading) return <Loading message="Loading dashboard…" />;
+  if (loading) return <Loading message="Loading network dashboard…" />;
 
   return (
-    <div className="dashboard-root">
-      <nav className="dash-nav">
-        <div>
-          <div className="dash-brand">Brutus</div>
-          <div className="dash-sub">Instagram Network Observatory</div>
-        </div>
-        {snapshot?.observerUsername && (
-          <div className="dash-account">@{snapshot.observerUsername}</div>
-        )}
-      </nav>
+    <div className="dash-canvas">
+      {/* 1. Top Navigation */}
+      <header className="dash-navbar">
+        <div className="dash-nav-container">
+          <div className="dash-brand-cluster">
+            <div className="dash-logo-mark" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="var(--spring-meadow)" stroke="var(--teal-waters)" />
+              </svg>
+            </div>
+            <div>
+              <div className="dash-title">Brutus</div>
+              <div className="dash-tagline">Instagram Network Observatory</div>
+            </div>
+          </div>
 
-      <main className="dash-content">
+          <div className="dash-nav-meta">
+            {snapshot?.observerUsername && (
+              <div className="dash-account-chip">
+                <span className="live-dot" />
+                <span>@{snapshot.observerUsername}</span>
+              </div>
+            )}
+            <button
+              className="dash-refresh-btn"
+              onClick={loadData}
+              title="Refresh stored snapshot data"
+              type="button"
+            >
+              Refresh Data ↻
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="dash-main-layout">
         {error && <ErrorMessage message={error} onRetry={loadData} />}
 
-        <Overview snapshot={snapshot} />
+        {/* 2. Overview Ribbon */}
+        <section className="dash-section">
+          <Overview snapshot={snapshot} />
+        </section>
 
-        <NetworkStats snapshot={snapshot} prevSnapshot={prevSnapshot} />
+        {/* 3 & 4. Analytics Grid: Network Stats + Relationship Changes */}
+        <div className="dash-grid-two-col">
+          <section className="dash-card">
+            <NetworkStats snapshot={snapshot} prevSnapshot={prevSnapshot} />
+          </section>
 
-        <RelationshipChanges
-          currentSnapshot={snapshot}
-          prevSnapshot={prevSnapshot}
-        />
+          <section className="dash-card">
+            <RelationshipChanges
+              currentSnapshot={snapshot}
+              prevSnapshot={prevSnapshot}
+            />
+          </section>
+        </div>
 
-        <Timeline scanHistory={scanHistory} />
+        {/* 5. Native SVG Network Graph */}
+        <section className="dash-card">
+          <NetworkGraph
+            classified={classified}
+            observerUsername={snapshot?.observerUsername}
+          />
+        </section>
 
-        <ScanHistory scanHistory={scanHistory} />
+        {/* 6 & 7. Historical Records: Timeline + Scan History */}
+        <div className="dash-grid-two-col">
+          <section className="dash-card">
+            <Timeline scanHistory={scanHistory} />
+          </section>
 
-        <NetworkGraph
-          classified={classified}
-          observerUsername={snapshot?.observerUsername}
-        />
+          <section className="dash-card">
+            <ScanHistory scanHistory={scanHistory} />
+          </section>
+        </div>
 
-        <AnomalyPanel anomaly={anomaly} />
+        {/* 8. Anomaly Panel */}
+        <section className="dash-card">
+          <AnomalyPanel anomaly={anomaly} />
+        </section>
       </main>
     </div>
   );

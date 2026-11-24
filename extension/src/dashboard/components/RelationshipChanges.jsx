@@ -1,35 +1,29 @@
-// RelationshipChanges.jsx — Shows what changed between two snapshots.
-//
-// Uses computeSnapshotDiff() from comparison.js — no duplicate logic here.
-//
-// Ponytail:
-//   prev.followers = [A, B], curr.followers = [A, C]
-//   lostFollowers = [B], newFollowers = [C]
+// RelationshipChanges.jsx — Visual delta analysis between two valid snapshots.
+// Computes new followers, lost followers, new following, and unfollowed accounts.
 
 import { computeSnapshotDiff } from '../../utils/comparison.js';
 import EmptyState from '../../components/EmptyState.jsx';
 
 const CHANGE_LABEL = {
-  newFollowers:  { cls: 'new-follower',  label: 'New Follower' },
-  lostFollowers: { cls: 'lost-follower', label: 'Lost Follower' },
-  newFollowing:  { cls: 'new-following', label: 'New Following' },
-  unfollowed:    { cls: 'unfollowed',    label: 'Unfollowed' }
+  newFollowers:  { cls: 'delta-new-follower',  label: '+ New Follower' },
+  lostFollowers: { cls: 'delta-lost-follower', label: '- Lost Follower' },
+  newFollowing:  { cls: 'delta-new-following', label: '+ New Following' },
+  unfollowed:    { cls: 'delta-unfollowed',    label: '- Unfollowed' }
 };
 
 export default function RelationshipChanges({ currentSnapshot, prevSnapshot }) {
   if (!currentSnapshot || !prevSnapshot) {
     return (
-      <div className="dash-card">
-        <h2 className="dash-card-title">Relationship Changes</h2>
+      <div className="dash-subcard">
+        <h3 className="dash-card-title">Relationship Changes</h3>
         <EmptyState
-          title="Need two snapshots"
-          description="Run at least two scans to see what changed between them."
+          title="Baseline snapshot established"
+          description="A minimum of two sequential scans is required to detect follower and following deltas."
         />
       </div>
     );
   }
 
-  // Compute the diff using existing utility.
   const diff = computeSnapshotDiff(
     prevSnapshot.followers    || [],
     currentSnapshot.followers || [],
@@ -48,23 +42,30 @@ export default function RelationshipChanges({ currentSnapshot, prevSnapshot }) {
 
   if (allChanges.length === 0) {
     return (
-      <div className="dash-card">
-        <h2 className="dash-card-title">Relationship Changes</h2>
-        <EmptyState title="No changes detected" description="Your network looks the same as the previous snapshot." />
+      <div className="dash-subcard">
+        <h3 className="dash-card-title">Relationship Changes</h3>
+        <EmptyState
+          title="Stable Network"
+          description="No follower or following changes were observed between the last two scans."
+        />
       </div>
     );
   }
 
   return (
-    <div className="dash-card">
-      <h2 className="dash-card-title">Relationship Changes</h2>
-      <div className="changes-list">
-        {allChanges.map((c, i) => (
-          <div className="change-row" key={`${c.type}-${c.user.id || c.user.username}-${i}`}>
-            <span className={`change-type ${c.cls}`}>{c.label}</span>
-            <span className="change-username">@{c.user.username}</span>
+    <div className="dash-subcard">
+      <div className="dash-card-header-row">
+        <h3 className="dash-card-title">Relationship Changes</h3>
+        <span className="dash-badge-count">{allChanges.length} Changes Detected</span>
+      </div>
+
+      <div className="changes-feed-list">
+        {allChanges.slice(0, 30).map((c, i) => (
+          <div className="change-feed-item" key={`${c.type}-${c.user.id || c.user.username}-${i}`}>
+            <span className={`delta-tag ${c.cls}`}>{c.label}</span>
+            <span className="delta-user-handle">@{c.user.username}</span>
             {c.user.fullName && (
-              <span style={{ color: '#888', fontSize: '0.78rem' }}>{c.user.fullName}</span>
+              <span className="delta-user-fullname">{c.user.fullName}</span>
             )}
           </div>
         ))}

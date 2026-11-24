@@ -1,15 +1,11 @@
-// UserCard.jsx — Single user row showing avatar initials, username, relationship badge, and profile link.
-//
-// Ponytail:
-//   Input: user = { username: 'alice', fullName: 'Alice M' }, category = 'mutual'
-//   Output: card with initials avatar, @username, fullName, category badge, and external link ↗
+// UserCard.jsx — Compact, high-density user card with initials avatar, verified handle, and Instagram link.
 
 export default function UserCard({ user, category }) {
   const username = user.username || user.id || '';
   const fullName = user.fullName || '';
   const displayName = fullName || username || '?';
 
-  // Extract up to 2 letters for initials
+  // Build 1-2 character initials
   const initials = displayName
     .split(/[\s._]+/)
     .filter(Boolean)
@@ -17,30 +13,37 @@ export default function UserCard({ user, category }) {
     .map((w) => w[0]?.toUpperCase() ?? '')
     .join('') || (username[0] ? username[0].toUpperCase() : '?');
 
-  const badgeInfo = {
-    mutual:           { cls: 'mutual',    label: '✓ Mutual' },
-    notFollowingBack: { cls: 'following', label: 'Not Back' },
-    dontFollowBack:   { cls: 'follower',  label: 'Fan' }
+  const badgeConfig = {
+    mutual:           { cls: 'badge-mutual',    label: 'Mutual' },
+    notFollowingBack: { cls: 'badge-not-back',  label: 'Not Back' },
+    dontFollowBack:   { cls: 'badge-fan',       label: 'Fan' }
   };
 
-  const badge = badgeInfo[category] || { cls: 'following', label: category };
+  const badge = badgeConfig[category] || { cls: 'badge-not-back', label: category };
 
   return (
-    <div className="user-card">
-      <div className="avatar" aria-hidden="true">{initials}</div>
-      <div className="user-info">
-        <div className="user-username">@{username}</div>
+    <div className="user-row-card">
+      <div className="user-avatar-circle" aria-hidden="true">
+        {initials}
+      </div>
+
+      <div className="user-details">
+        <div className="user-primary-row">
+          <span className="user-handle">@{username}</span>
+          <span className={`user-category-tag ${badge.cls}`}>{badge.label}</span>
+        </div>
         {fullName && fullName !== username && (
-          <div className="user-name">{fullName}</div>
+          <div className="user-fullname">{fullName}</div>
         )}
       </div>
-      <span className={`rel-badge ${badge.cls}`}>{badge.label}</span>
+
       <a
         href={`https://www.instagram.com/${username}/`}
         target="_blank"
         rel="noreferrer"
-        className="user-profile-link"
-        title={`View @${username} on Instagram`}
+        className="user-link-out"
+        title={`View @${username} on Instagram (opens in new tab)`}
+        aria-label={`Open @${username} on Instagram`}
       >
         ↗
       </a>

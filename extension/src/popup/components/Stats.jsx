@@ -1,9 +1,11 @@
-// Stats.jsx — Interactive 2×2 grid of metric cards showing key relationship metrics.
+// Stats.jsx — Balanced 2×2 metric grid with serif figures and interactive filter hooks.
 //
-// Ponytail:
-//   Input: { snapshot, activeFilter, onSelectFilter }
-//   Output: four interactive metric cards that trigger corresponding user filters.
-//   Rule: if a metric is unavailable, show '—' instead of deceptive 0.
+// Requirements:
+//   1. Total Followers
+//   2. Total Following
+//   3. Mutual Followers
+//   4. Not Following Back
+//   - Each card: small title, visible number, subtle visual treatment, clickable filter.
 
 import { FILTER } from '../../utils/constants.js';
 
@@ -29,21 +31,24 @@ export default function Stats({ snapshot, activeFilter, onSelectFilter }) {
       filter: FILTER.ALL,
       label: 'Followers',
       value: val(totalFollowers),
-      active: activeFilter === FILTER.ALL
+      active: activeFilter === FILTER.ALL,
+      tag: 'Audience'
     },
     {
       id: 'following',
       filter: FILTER.NOT_FOLLOWING_BACK,
       label: 'Following',
       value: val(totalFollowing),
-      active: false
+      active: false,
+      tag: 'Network'
     },
     {
       id: 'mutuals',
       filter: FILTER.MUTUALS,
-      label: 'Mutuals',
+      label: 'Mutual Followers',
       value: val(totalMutuals),
-      active: activeFilter === FILTER.MUTUALS
+      active: activeFilter === FILTER.MUTUALS,
+      tag: 'Two-Way'
     },
     {
       id: 'notFollowingBack',
@@ -51,22 +56,26 @@ export default function Stats({ snapshot, activeFilter, onSelectFilter }) {
       label: 'Not Following Back',
       value: val(notFollowingBack),
       active: activeFilter === FILTER.NOT_FOLLOWING_BACK,
-      highlight: true
+      tag: 'One-Way',
+      isAlert: !isIncomplete && notFollowingBack > 0
     }
   ];
 
   return (
-    <div className="stats-grid">
+    <div className="stats-metric-grid" role="region" aria-label="Key Instagram Network Metrics">
       {cards.map((card) => (
         <button
           key={card.id}
           type="button"
-          className={`stat-card ${card.active ? 'active' : ''} ${card.highlight ? 'highlight-card' : ''}`}
+          className={`metric-tile ${card.active ? 'active-tile' : ''} ${card.isAlert ? 'alert-tile' : ''}`}
           onClick={() => onSelectFilter && onSelectFilter(card.filter)}
-          title={`Click to filter user list by ${card.label}`}
+          title={`Filter audience list by ${card.label}`}
         >
-          <div className="stat-value">{card.value}</div>
-          <div className="stat-label">{card.label}</div>
+          <div className="metric-header-row">
+            <span className="metric-title">{card.label}</span>
+            <span className="metric-tag">{card.tag}</span>
+          </div>
+          <div className="metric-number">{card.value}</div>
         </button>
       ))}
     </div>

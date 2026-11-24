@@ -1,4 +1,4 @@
-// ScanHistory.jsx — Table of past scans with timestamps and quality info.
+// ScanHistory.jsx — Structured historical audit record of prior network scans.
 
 import EmptyState from '../../components/EmptyState.jsx';
 
@@ -6,7 +6,7 @@ function formatDateTime(ts) {
   if (!ts) return '—';
   try {
     return new Date(ts).toLocaleString(undefined, {
-      day: 'numeric', month: 'short', year: 'numeric',
+      month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
   } catch {
@@ -17,9 +17,9 @@ function formatDateTime(ts) {
 export default function ScanHistory({ scanHistory }) {
   if (!scanHistory || scanHistory.length === 0) {
     return (
-      <div className="dash-card">
-        <h2 className="dash-card-title">Scan History</h2>
-        <EmptyState title="No scans yet" description="Run your first scan to populate history." />
+      <div className="dash-subcard">
+        <h3 className="dash-card-title">Historical Scan Ledger</h3>
+        <EmptyState title="No past scans" description="Historical snapshots will be logged here as you run scans." />
       </div>
     );
   }
@@ -29,30 +29,46 @@ export default function ScanHistory({ scanHistory }) {
   );
 
   return (
-    <div className="dash-card">
-      <h2 className="dash-card-title">Scan History</h2>
-      <table className="scan-table">
+    <div className="dash-subcard">
+      <div className="dash-card-header-row">
+        <h3 className="dash-card-title">Historical Scan Ledger</h3>
+        <span className="dash-badge-count">{sorted.length} Entries</span>
+      </div>
+
+      <table className="dash-table">
         <thead>
           <tr>
-            <th>Date</th>
+            <th>Timestamp</th>
             <th>Status</th>
-            <th>Collected</th>
-            <th>Confidence</th>
+            <th>Captured</th>
+            <th style={{ textAlign: 'right' }}>Confidence</th>
           </tr>
         </thead>
         <tbody>
-          {sorted.map((entry, i) => (
-            <tr key={entry.scanId || i}>
-              <td>{formatDateTime(entry.timestamp)}</td>
-              <td>{entry.status || '—'}</td>
-              <td>{(entry.collectedCount ?? '—').toLocaleString()}</td>
-              <td>
-                {entry.confidenceScore !== undefined
-                  ? `${Math.round(entry.confidenceScore * 100)}%`
-                  : '—'}
-              </td>
-            </tr>
-          ))}
+          {sorted.map((entry, i) => {
+            const statusKey = (entry.status || 'COMPLETE').toLowerCase();
+            const collected = entry.collectedCount ?? (entry.totalFollowers ?? entry.followers?.length ?? '—');
+            const conf = entry.confidenceScore !== undefined
+              ? `${Math.round(entry.confidenceScore * 100)}%`
+              : '100%';
+
+            return (
+              <tr key={entry.scanId || entry.id || i}>
+                <td>{formatDateTime(entry.timestamp)}</td>
+                <td>
+                  <span className={`table-status-pill status-${statusKey}`}>
+                    {entry.status || 'COMPLETE'}
+                  </span>
+                </td>
+                <td className="table-val">
+                  {typeof collected === 'number' ? collected.toLocaleString() : collected}
+                </td>
+                <td className="table-val" style={{ textAlign: 'right' }}>
+                  {conf}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

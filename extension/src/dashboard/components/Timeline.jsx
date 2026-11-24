@@ -1,8 +1,4 @@
-// Timeline.jsx — Chronological list of stored snapshots.
-//
-// Ponytail:
-//   Input: scanHistory = [{ scanId, timestamp, status, followers, following }, ...]
-//   Output: timeline entries sorted newest-first, each showing date and status badge.
+// Timeline.jsx — Chronological historical timeline of stored network scans.
 
 import EmptyState from '../../components/EmptyState.jsx';
 
@@ -10,7 +6,8 @@ function formatDate(ts) {
   if (!ts) return '—';
   try {
     return new Date(ts).toLocaleDateString(undefined, {
-      day: 'numeric', month: 'short', year: 'numeric'
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
   } catch {
     return ts;
@@ -20,35 +17,45 @@ function formatDate(ts) {
 export default function Timeline({ scanHistory }) {
   if (!scanHistory || scanHistory.length === 0) {
     return (
-      <div className="dash-card">
-        <h2 className="dash-card-title">Timeline</h2>
-        <EmptyState title="No scan history" description="Your scan history will appear here after you run scans." />
+      <div className="dash-subcard">
+        <h3 className="dash-card-title">Scan Timeline</h3>
+        <EmptyState title="No timeline data" description="Historical snapshots will appear here as scans are completed." />
       </div>
     );
   }
 
-  // Sort newest first.
   const sorted = [...scanHistory].sort(
     (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
   );
 
   return (
-    <div className="dash-card">
-      <h2 className="dash-card-title">Timeline</h2>
-      <div className="timeline-list">
+    <div className="dash-subcard">
+      <div className="dash-card-header-row">
+        <h3 className="dash-card-title">Chronological Timeline</h3>
+        <span className="dash-badge-count">{sorted.length} Snapshots</span>
+      </div>
+
+      <div className="timeline-spine">
         {sorted.map((entry, i) => {
-          const badgeCls = (entry.status || '').toLowerCase();
+          const statusLower = (entry.status || 'COMPLETE').toLowerCase();
+          const followers = entry.totalFollowers ?? entry.followers?.length ?? 0;
+          const following = entry.totalFollowing ?? entry.following?.length ?? 0;
+
           return (
-            <div className="timeline-entry" key={entry.scanId || i}>
-              <div className="timeline-dot" />
-              <span className="tl-date">{formatDate(entry.timestamp)}</span>
-              <span className="tl-label">
-                {(entry.totalFollowers ?? 0).toLocaleString()} followers ·{' '}
-                {(entry.totalFollowing ?? 0).toLocaleString()} following
-              </span>
-              <span className={`tl-badge ${badgeCls}`}>
-                {entry.status || 'COMPLETE'}
-              </span>
+            <div className="timeline-node" key={entry.scanId || entry.id || i}>
+              <div className={`timeline-orb orb-${statusLower}`} aria-hidden="true" />
+              <div className="timeline-content">
+                <div className="timeline-meta-row">
+                  <span className="tl-timestamp">{formatDate(entry.timestamp)}</span>
+                  <span className={`tl-status-pill status-${statusLower}`}>
+                    {entry.status || 'COMPLETE'}
+                  </span>
+                </div>
+                <div className="tl-stats-line">
+                  <strong>{followers.toLocaleString()}</strong> followers ·{' '}
+                  <strong>{following.toLocaleString()}</strong> following
+                </div>
+              </div>
             </div>
           );
         })}
