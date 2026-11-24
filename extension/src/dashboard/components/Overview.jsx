@@ -1,5 +1,6 @@
 // Overview.jsx — High-level metric cards for the dashboard header.
 // Derives values strictly from computeNetworkMetrics() in statistics.js.
+// Aligned single-line labels and baseline-aligned numerical values.
 
 import { computeNetworkMetrics } from '../../utils/statistics.js';
 
@@ -15,20 +16,20 @@ export default function Overview({ snapshot }) {
   const display = (v) => (v !== null && v !== undefined ? Number(v).toLocaleString() : '—');
 
   const cards = [
-    { label: 'Total Followers',       value: metrics ? display(metrics.totalFollowers) : '—', tag: 'Audience' },
-    { label: 'Total Following',       value: metrics ? display(metrics.totalFollowing) : '—', tag: 'Network' },
-    { label: 'Mutual Followers',      value: metrics ? (metrics.isIncomplete ? '—' : display(metrics.totalMutuals)) : '—', tag: 'Reciprocal' },
-    { label: 'Not Following Back',   value: metrics ? (metrics.isIncomplete ? '—' : display(metrics.followingOnly)) : '—', tag: 'Following Only' },
-    { label: 'Fans (Follower Only)',  value: metrics ? (metrics.isIncomplete ? '—' : display(metrics.followersOnly)) : '—', tag: 'Unreciprocated' },
+    { label: 'Followers',    value: metrics ? display(metrics.totalFollowers) : '—', tag: 'Audience' },
+    { label: 'Following',    value: metrics ? display(metrics.totalFollowing) : '—', tag: 'Network' },
+    { label: 'Mutuals',      value: metrics ? (metrics.isIncomplete ? '—' : display(metrics.totalMutuals)) : '—', tag: 'Mutual' },
+    { label: 'Not Back',     value: metrics ? (metrics.isIncomplete ? '—' : display(metrics.followingOnly)) : '—', tag: 'One-way' },
+    { label: 'Fans',         value: metrics ? (metrics.isIncomplete ? '—' : display(metrics.followersOnly)) : '—', tag: 'Audience' },
     {
-      label: 'Reciprocity Rate',
+      label: 'Reciprocity',
       value: metrics ? (metrics.isIncomplete ? '—' : `${(metrics.reciprocity * 100).toFixed(1)}%`) : '—',
       tag: 'Health'
     },
     {
       label: 'Follow Ratio',
       value: metrics ? (metrics.isIncomplete ? '—' : metrics.followRatio.toFixed(2)) : '—',
-      tag: 'Balance'
+      tag: 'Ratio'
     }
   ];
 

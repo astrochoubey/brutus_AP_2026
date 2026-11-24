@@ -1,4 +1,4 @@
-// Stats.jsx — 2×2 metric grid with clean typography and interactive filters.
+// Stats.jsx — 2×2 metric grid with perfectly aligned single-line labels and baseline numbers.
 
 import { FILTER } from '../../utils/constants.js';
 
@@ -46,7 +46,7 @@ export default function Stats({ snapshot, activeFilter, onSelectFilter }) {
     {
       id: 'notFollowingBack',
       filter: FILTER.NOT_FOLLOWING_BACK,
-      label: 'Not Following Back',
+      label: 'Not Back',
       value: val(notFollowingBack),
       active: activeFilter === FILTER.NOT_FOLLOWING_BACK,
       tag: 'One-way',
