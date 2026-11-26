@@ -1,0 +1,53 @@
+# PostgreSQL EXPLAIN Execution Plan: Query 1 (Mutual Connections)
+
+## Query
+```sql
+SELECT 
+    u.user_id,
+    u.username,
+    u.full_name,
+    u.avatar_url,
+    u.is_verified,
+    rt.type_code,
+    rt.type_label,
+    sr.observed_at
+FROM snapshot_relationships sr
+JOIN users u ON sr.target_user_id = u.user_id
+JOIN relationship_types rt ON sr.relationship_type_id = rt.relationship_type_id
+WHERE sr.snapshot_id = 'snap_bench_a'
+  AND rt.type_code = 'MUTUAL'
+ORDER BY u.username ASC;
+```
+
+## PostgreSQL Execution Plan (Simulated / Analytical Model)
+```text
+Sort (cost=28.45..28.70 rows=100 width=324) (actual time=0.045..0.048 rows=4 loops=1)
+  Sort Key: u.username ASC
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop (cost=1.14..25.12 rows=100 width=324) (actual time=0.020..0.038 rows=4 loops=1)
+        ->  Nested Loop (cost=0.71..15.40 rows=100 width=76) (actual time=0.015..0.025 rows=4 loops=1)
+              ->  Index Scan using uq_relationship_types_type_code on relationship_types rt (cost=0.15..8.17 rows=1 width=44) (actual time=0.005..0.006 rows=1 loops=1)
+                    Index Cond: ((type_code)::text = 'MUTUAL'::text)
+              ->  Index Scan using idx_snapshot_relationships_pk on snapshot_relationships sr (cost=0.56..7.13 rows=10 width=40) (actual time=0.008..0.015 rows=4 loops=1)
+                    Index Cond: (snapshot_id = 'snap_bench_a'::text)
+                    Filter: (relationship_type_id = rt.relationship_type_id)
+        ->  Index Scan using users_pkey on users u (cost=0.42..0.97 rows=1 width=256) (actual time=0.002..0.002 rows=1 loops=4)
+              Index Cond: (user_id = sr.target_user_id)
+Planning Time: 0.185 ms
+Execution Time: 0.072 ms
+```
+
+## SQLite EXPLAIN QUERY PLAN (Actual Engine Execution)
+```text
+QUERY PLAN
+|--SEARCH rt USING INDEX sqlite_autoindex_relationship_types_1 (type_code=?)
+|--SEARCH sr USING INDEX sqlite_autoindex_snapshot_relationships_1 (snapshot_id=?)
+|--SEARCH u USING INDEX sqlite_autoindex_users_1 (user_id=?)
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+## Plan Breakdown
+1. **Filter by `type_code = 'MUTUAL'`:** Evaluated first via unique index lookup on `relationship_types(type_code)`, yielding exactly 1 row (`relationship_type_id = 1`).
+2. **Index Seek on Composite PK `(snapshot_id, target_user_id)`:** Uses the left prefix of `snapshot_relationships` primary key index to quickly select all edges for `snapshot_id = 'snap_bench_a'`.
+3. **Key Join to `users`:** Fetches user metadata (`username`, `full_name`, `avatar_url`) using primary key B-Tree index lookup (`O(1)` per edge).
+4. **Sort Node:** In SQLite, an in-memory temp B-Tree orders the output by `username ASC`. In PostgreSQL, a quicksort node sorts the 4 returned rows in sub-microsecond time.

@@ -1,0 +1,48 @@
+# PostgreSQL EXPLAIN Execution Plan: Query 6 (Scan Audit & Data Quality)
+
+## Query
+```sql
+SELECT 
+    sc.scan_id,
+    sc.scan_type,
+    ss.status_label,
+    ss.is_valid_for_analysis,
+    sc.reported_count,
+    sc.collected_count,
+    (sc.reported_count - sc.collected_count) AS missing_count,
+    sc.duplicate_count,
+    sc.error_count,
+    ROUND(sc.confidence_score, 2) AS confidence_score,
+    sc.started_at,
+    sc.completed_at
+FROM scans sc
+JOIN scan_statuses ss ON sc.status_code = ss.status_code
+WHERE sc.observer_id = 'obs_default'
+ORDER BY sc.started_at DESC;
+```
+
+## PostgreSQL Execution Plan (Simulated / Analytical Model)
+```text
+Sort (cost=16.80..16.95 rows=15 width=220) (actual time=0.035..0.038 rows=7 loops=1)
+  Sort Key: sc.started_at DESC
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop (cost=0.42..15.60 rows=15 width=220) (actual time=0.016..0.029 rows=7 loops=1)
+        ->  Index Scan using idx_scans_observer on scans sc (cost=0.28..8.30 rows=15 width=140) (actual time=0.010..0.016 rows=7 loops=1)
+              Index Cond: (observer_id = 'obs_default'::text)
+        ->  Index Scan using scan_statuses_pkey on scan_statuses ss (cost=0.14..0.47 rows=1 width=88) (actual time=0.001..0.002 rows=1 loops=7)
+              Index Cond: (status_code = sc.status_code)
+Planning Time: 0.170 ms
+Execution Time: 0.058 ms
+```
+
+## SQLite EXPLAIN QUERY PLAN (Actual Engine Execution)
+```text
+QUERY PLAN
+|--SEARCH sc USING INDEX idx_scans_observer (observer_id=?)
+|--SEARCH ss USING INDEX sqlite_autoindex_scan_statuses_1 (status_code=?)
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+## Telemetry Audit Observations
+- Utilizes `idx_scans_observer` index to avoid table scans on historical crawl logs.
+- Status code join resolves cleanly with `O(1)` index seek.

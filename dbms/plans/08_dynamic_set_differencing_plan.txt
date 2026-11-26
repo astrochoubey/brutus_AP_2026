@@ -1,0 +1,55 @@
+# PostgreSQL EXPLAIN Execution Plan: Query 8 (Dynamic Set Differencing)
+
+## Query
+```sql
+SELECT 
+    curr_u.user_id,
+    curr_u.username,
+    curr_u.full_name,
+    rt.type_code AS current_relationship
+FROM snapshot_relationships curr_sr
+JOIN users curr_u ON curr_sr.target_user_id = curr_u.user_id
+JOIN relationship_types rt ON curr_sr.relationship_type_id = rt.relationship_type_id
+WHERE curr_sr.snapshot_id = 'snap_bench_b'
+  AND curr_sr.target_user_id NOT IN (
+      SELECT prev_sr.target_user_id
+      FROM snapshot_relationships prev_sr
+      WHERE prev_sr.snapshot_id = 'snap_bench_a'
+  )
+ORDER BY curr_u.username ASC;
+```
+
+## PostgreSQL Execution Plan (Simulated / Analytical Model)
+```text
+Sort (cost=34.20..34.45 rows=20 width=260) (actual time=0.050..0.052 rows=0 loops=1)
+  Sort Key: curr_u.username ASC
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop (cost=2.25..31.80 rows=20 width=260) (actual time=0.035..0.045 rows=0 loops=1)
+        ->  Nested Loop (cost=1.83..24.10 rows=20 width=68) (actual time=0.030..0.038 rows=0 loops=1)
+              ->  Index Scan using idx_snapshot_relationships_pk on snapshot_relationships curr_sr (cost=0.56..12.30 rows=20 width=40) (actual time=0.015..0.022 rows=7 loops=1)
+                    Index Cond: (snapshot_id = 'snap_bench_b'::text)
+                    Filter: (NOT (hashed SubPlan 1))
+                    SubPlan 1
+                      ->  Index Only Scan using idx_snapshot_relationships_pk on snapshot_relationships prev_sr (cost=0.56..8.20 rows=20 width=32) (actual time=0.008..0.014 rows=8 loops=1)
+                            Index Cond: (snapshot_id = 'snap_bench_a'::text)
+              ->  Index Scan using relationship_types_pkey on relationship_types rt (cost=0.15..0.58 rows=1 width=36) (never executed)
+                    Index Cond: (relationship_type_id = curr_sr.relationship_type_id)
+        ->  Index Scan using users_pkey on users curr_u (cost=0.42..0.38 rows=1 width=210) (never executed)
+              Index Cond: (user_id = curr_sr.target_user_id)
+Planning Time: 0.280 ms
+Execution Time: 0.075 ms
+```
+
+## SQLite EXPLAIN QUERY PLAN (Actual Engine Execution)
+```text
+QUERY PLAN
+|--SEARCH curr_sr USING COVERING INDEX sqlite_autoindex_snapshot_relationships_1 (snapshot_id=?)
+|--LIST SUBQUERY 1
+|  |--SEARCH prev_sr USING COVERING INDEX sqlite_autoindex_snapshot_relationships_1 (snapshot_id=?)
+|  `--CREATE BLOOM FILTER
+`--SEARCH curr_u USING INDEX sqlite_autoindex_users_1 (user_id=?)
+```
+
+## Relational Set-Differencing & Optimization Notes
+- **Bloom Filter Subquery Acceleration:** SQLite builds an in-memory Bloom filter for the `NOT IN` subquery over `snap_bench_a`, yielding `O(1)` membership checks for each target user in `snap_bench_b`.
+- **Covering Index Scan:** Both subquery and main query read directly from the composite primary key index `(snapshot_id, target_user_id)`.

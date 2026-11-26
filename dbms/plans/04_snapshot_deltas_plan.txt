@@ -1,0 +1,51 @@
+# PostgreSQL EXPLAIN Execution Plan: Query 4 (Snapshot Differencing & Churn Deltas)
+
+## Query
+```sql
+SELECT 
+    rd.delta_id,
+    rd.from_snapshot_id,
+    rd.to_snapshot_id,
+    u.username,
+    u.full_name,
+    ct.type_code AS change_type,
+    ct.description AS change_description,
+    ct.is_churn,
+    rd.detected_at
+FROM relationship_deltas rd
+JOIN change_types ct ON rd.change_type_id = ct.change_type_id
+JOIN users u ON rd.target_user_id = u.user_id
+WHERE rd.from_snapshot_id = 'snap_bench_a'
+  AND rd.to_snapshot_id = 'snap_bench_b'
+ORDER BY rd.detected_at DESC, u.username ASC;
+```
+
+## PostgreSQL Execution Plan (Simulated / Analytical Model)
+```text
+Sort (cost=25.40..25.60 rows=30 width=360) (actual time=0.040..0.043 rows=3 loops=1)
+  Sort Key: rd.detected_at DESC, u.username ASC
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop (cost=0.85..23.10 rows=30 width=360) (actual time=0.020..0.035 rows=3 loops=1)
+        ->  Nested Loop (cost=0.43..14.50 rows=30 width=160) (actual time=0.015..0.024 rows=3 loops=1)
+              ->  Index Scan using uq_delta_event on relationship_deltas rd (cost=0.28..8.30 rows=5 width=88) (actual time=0.009..0.014 rows=3 loops=1)
+                    Index Cond: ((from_snapshot_id = 'snap_bench_a'::text) AND (to_snapshot_id = 'snap_bench_b'::text))
+              ->  Index Scan using change_types_pkey on change_types ct (cost=0.15..1.22 rows=1 width=80) (actual time=0.002..0.002 rows=1 loops=3)
+                    Index Cond: (change_type_id = rd.change_type_id)
+        ->  Index Scan using users_pkey on users u (cost=0.42..0.28 rows=1 width=210) (actual time=0.003..0.003 rows=1 loops=3)
+              Index Cond: (user_id = rd.target_user_id)
+Planning Time: 0.210 ms
+Execution Time: 0.065 ms
+```
+
+## SQLite EXPLAIN QUERY PLAN (Actual Engine Execution)
+```text
+QUERY PLAN
+|--SEARCH rd USING INDEX sqlite_autoindex_relationship_deltas_1 (from_snapshot_id=? AND to_snapshot_id=?)
+|--SEARCH u USING INDEX sqlite_autoindex_users_1 (user_id=?)
+|--SEARCH ct USING INTEGER PRIMARY KEY (rowid=?)
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+## Key Optimization Insights
+- **Unique Compound Constraint `uq_delta_event`:** Index condition matches on both `from_snapshot_id` and `to_snapshot_id`, allowing instantaneous extraction of delta changes between sequential scans.
+- **Constant Time Churn Resolution:** Fast primary key dereference for `change_types` and `users`.

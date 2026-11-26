@@ -1,0 +1,45 @@
+# PostgreSQL EXPLAIN Execution Plan: Query 5 (Network Growth Time Series)
+
+## Query
+```sql
+SELECT 
+    s.snapshot_id,
+    s.scan_id,
+    s.total_followers,
+    s.total_following,
+    s.total_mutuals,
+    ROUND(sm.reciprocity_ratio, 4) AS reciprocity_ratio,
+    ROUND(sm.turnover_rate, 4) AS turnover_rate,
+    ROUND(sm.network_density, 4) AS network_density,
+    s.created_at AS snapshot_timestamp
+FROM snapshots s
+JOIN snapshot_metrics sm ON s.snapshot_id = sm.snapshot_id
+WHERE s.observer_id = 'obs_default'
+ORDER BY s.created_at ASC;
+```
+
+## PostgreSQL Execution Plan (Simulated / Analytical Model)
+```text
+Sort (cost=18.60..18.75 rows=20 width=180) (actual time=0.038..0.040 rows=7 loops=1)
+  Sort Key: s.created_at ASC
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop (cost=0.56..17.15 rows=20 width=180) (actual time=0.018..0.032 rows=7 loops=1)
+        ->  Index Scan using idx_snapshots_observer on snapshots s (cost=0.28..8.30 rows=20 width=104) (actual time=0.010..0.017 rows=7 loops=1)
+              Index Cond: (observer_id = 'obs_default'::text)
+        ->  Index Scan using snapshot_metrics_snapshot_id_key on snapshot_metrics sm (cost=0.28..0.43 rows=1 width=84) (actual time=0.002..0.002 rows=1 loops=7)
+              Index Cond: (snapshot_id = s.snapshot_id)
+Planning Time: 0.190 ms
+Execution Time: 0.062 ms
+```
+
+## SQLite EXPLAIN QUERY PLAN (Actual Engine Execution)
+```text
+QUERY PLAN
+|--SEARCH s USING INDEX idx_snapshots_observer (observer_id=?)
+|--SEARCH sm USING INDEX sqlite_autoindex_snapshot_metrics_1 (snapshot_id=?)
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+## Performance & Design Justification
+- `idx_snapshots_observer` eliminates sequential scans over the entire `snapshots` table.
+- Direct 1-to-1 join with `snapshot_metrics` via unique index lookup ensures rapid data retrieval for frontend dashboard trendlines.

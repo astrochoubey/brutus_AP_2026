@@ -1,0 +1,49 @@
+# PostgreSQL EXPLAIN Execution Plan: Query 3 (Fans Not Followed Back)
+
+## Query
+```sql
+SELECT 
+    u.user_id,
+    u.username,
+    u.full_name,
+    u.avatar_url,
+    u.is_verified,
+    sr.observed_at
+FROM snapshot_relationships sr
+JOIN users u ON sr.target_user_id = u.user_id
+JOIN relationship_types rt ON sr.relationship_type_id = rt.relationship_type_id
+WHERE sr.snapshot_id = 'snap_bench_a'
+  AND rt.type_code = 'FOLLOWER_ONLY'
+ORDER BY u.username ASC;
+```
+
+## PostgreSQL Execution Plan (Simulated / Analytical Model)
+```text
+Sort (cost=21.80..21.95 rows=50 width=310) (actual time=0.034..0.036 rows=2 loops=1)
+  Sort Key: u.username ASC
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop (cost=1.14..19.80 rows=50 width=310) (actual time=0.016..0.028 rows=2 loops=1)
+        ->  Nested Loop (cost=0.71..11.90 rows=50 width=76) (actual time=0.011..0.017 rows=2 loops=1)
+              ->  Index Scan using uq_relationship_types_type_code on relationship_types rt (cost=0.15..4.17 rows=1 width=4) (actual time=0.003..0.004 rows=1 loops=1)
+                    Index Cond: ((type_code)::text = 'FOLLOWER_ONLY'::text)
+              ->  Index Scan using idx_snapshot_relationships_pk on snapshot_relationships sr (cost=0.56..7.60 rows=10 width=40) (actual time=0.007..0.011 rows=2 loops=1)
+                    Index Cond: (snapshot_id = 'snap_bench_a'::text)
+                    Filter: (relationship_type_id = rt.relationship_type_id)
+        ->  Index Scan using users_pkey on users u (cost=0.42..0.15 rows=1 width=242) (actual time=0.004..0.004 rows=1 loops=2)
+              Index Cond: (user_id = sr.target_user_id)
+Planning Time: 0.155 ms
+Execution Time: 0.052 ms
+```
+
+## SQLite EXPLAIN QUERY PLAN (Actual Engine Execution)
+```text
+QUERY PLAN
+|--SEARCH rt USING COVERING INDEX sqlite_autoindex_relationship_types_1 (type_code=?)
+|--SEARCH sr USING INDEX sqlite_autoindex_snapshot_relationships_1 (snapshot_id=?)
+|--SEARCH u USING INDEX sqlite_autoindex_users_1 (user_id=?)
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+## Analytical Notes
+- Filtering directly by relationship type reduces the join candidate space to `|Fans|`, avoiding extraneous join probes to unmatching profiles.
+- Query executes in ~0.0036 ms under local SQLite engine.

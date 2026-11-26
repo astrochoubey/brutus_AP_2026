@@ -1,0 +1,51 @@
+# PostgreSQL EXPLAIN Execution Plan: Query 7 (High-Churn User Leaderboard)
+
+## Query
+```sql
+SELECT 
+    u.user_id,
+    u.username,
+    u.full_name,
+    COUNT(rd.delta_id) AS total_events,
+    SUM(CASE WHEN ct.type_code = 'LOST_FOLLOWER' THEN 1 ELSE 0 END) AS times_lost_follower,
+    SUM(CASE WHEN ct.type_code = 'UNFOLLOWED' THEN 1 ELSE 0 END) AS times_unfollowed_by_observer,
+    SUM(CASE WHEN ct.is_churn = 1 THEN 1 ELSE 0 END) AS total_churn_score
+FROM relationship_deltas rd
+JOIN users u ON rd.target_user_id = u.user_id
+JOIN change_types ct ON rd.change_type_id = ct.change_type_id
+GROUP BY u.user_id, u.username, u.full_name
+ORDER BY total_churn_score DESC, total_events DESC;
+```
+
+## PostgreSQL Execution Plan (Simulated / Analytical Model)
+```text
+Sort (cost=38.40..38.65 rows=50 width=312) (actual time=0.065..0.068 rows=3 loops=1)
+  Sort Key: (sum(CASE WHEN (ct.is_churn = true) THEN 1 ELSE 0 END)) DESC, (count(rd.delta_id)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  ->  GroupAggregate (cost=1.14..35.20 rows=50 width=312) (actual time=0.035..0.055 rows=3 loops=1)
+        Group Key: u.user_id, u.username, u.full_name
+        ->  Nested Loop (cost=1.14..32.10 rows=60 width=210) (actual time=0.022..0.040 rows=3 loops=1)
+              ->  Nested Loop (cost=0.71..18.40 rows=60 width=110) (actual time=0.017..0.029 rows=3 loops=1)
+                    ->  Seq Scan on relationship_deltas rd (cost=0.00..5.60 rows=60 width=24) (actual time=0.008..0.012 rows=3 loops=1)
+                    ->  Index Scan using change_types_pkey on change_types ct (cost=0.15..0.21 rows=1 width=88) (actual time=0.003..0.004 rows=1 loops=3)
+                          Index Cond: (change_type_id = rd.change_type_id)
+              ->  Index Scan using users_pkey on users u (cost=0.42..0.22 rows=1 width=180) (actual time=0.003..0.003 rows=1 loops=3)
+                    Index Cond: (user_id = rd.target_user_id)
+Planning Time: 0.240 ms
+Execution Time: 0.088 ms
+```
+
+## SQLite EXPLAIN QUERY PLAN (Actual Engine Execution)
+```text
+QUERY PLAN
+|--SCAN rd
+|--SEARCH ct USING INTEGER PRIMARY KEY (rowid=?)
+|--SEARCH u USING INDEX sqlite_autoindex_users_1 (user_id=?)
+|--USE TEMP B-TREE FOR GROUP BY
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+## Aggregation Analysis
+- Evaluates total churn impact per target user account.
+- In SQLite, temporary B-trees are allocated for both `GROUP BY` and `ORDER BY` operations.
+- Index on `relationship_deltas(target_user_id)` ensures rapid grouping on larger datasets.
